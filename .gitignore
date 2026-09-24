@@ -1,0 +1,11 @@
+# Repository-level ignores. Each folder (server, client, admin) has its own .gitignore for its
+# dependencies, build output and secrets.
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,10 @@
+rules_version = '2';
+// Only the Express server (Firebase Admin SDK, which bypasses rules) touches Firestore.
+// The browser never talks to Firestore directly, so all client access is denied.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

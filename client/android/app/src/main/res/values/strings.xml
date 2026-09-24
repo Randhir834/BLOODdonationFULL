@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Blood Donation</string>
+    <string name="title_activity_main">Blood Donation</string>
+    <string name="package_name">com.blooddonation.app</string>
+    <string name="custom_url_scheme">com.blooddonation.app</string>
+</resources>

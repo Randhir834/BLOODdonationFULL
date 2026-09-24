@@ -1,0 +1,8 @@
+{
+  "appId": "com.blooddonation.app",
+  "appName": "Blood Donation",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  }
+}
