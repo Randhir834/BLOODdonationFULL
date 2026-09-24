@@ -6,7 +6,7 @@ import { pinoHttp } from "pino-http";
 import { env } from "./config/env.js";
 import { errorHandler, notFound } from "./middlewares/errorHandler.js";
 import { rateLimiter } from "./middlewares/rateLimit.js";
-import { adminApi, health, userApi } from "./routes/index.js";
+import { adminApi, health, orgApi, userApi } from "./routes/index.js";
 import { logger } from "./utils/logger.js";
 
 // Only what a browser app needs; the token travels in the Authorization header, never a cookie.
@@ -43,9 +43,10 @@ export const createApp = () => {
 
   app.use("/health", health);
 
-  // Two separate front doors on one server, each callable from its own website only.
+  // Three separate front doors on one server, each callable from its own website only.
   app.use("/api/v1", corsFor(env.CLIENT_ORIGINS), rateLimiter(120), bodyParser, userApi);
   app.use("/api/admin", corsFor(env.ADMIN_ORIGINS), rateLimiter(240), bodyParser, adminApi);
+  app.use("/api/org", corsFor(env.ORG_ORIGINS), rateLimiter(240), bodyParser, orgApi);
 
   app.use(notFound);
   app.use(errorHandler);

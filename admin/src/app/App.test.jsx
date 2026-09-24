@@ -119,7 +119,7 @@ describe("signed in", () => {
     fireEvent.change(within(suspend).getByRole("textbox"), { target: { value: "Spam" } });
     fireEvent.click(confirm);
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/users/u1/suspend", { reason: "Spam" }));
-    expect(await screen.findByText("User suspended and signed out")).toBeInTheDocument();
+    expect(await screen.findByText("User suspended")).toBeInTheDocument();
   });
 
   it("makes the admin type a word before deleting a user", async () => {

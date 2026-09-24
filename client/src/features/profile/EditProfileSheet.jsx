@@ -31,7 +31,7 @@ export default function EditProfileSheet({ user, onClose, onDone }) {
     setBusy(true);
     try {
       await updateProfile(dispatch, { address: address.trim(), city: city.trim() });
-      notify.success("Profile updated", "Your address and city were saved.");
+      notify.success("Profile updated");
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not update your profile. Please try again."));

@@ -1,4 +1,5 @@
 import * as audit from "../services/auditService.js";
+import * as notifications from "../services/notificationService.js";
 import { populate } from "../services/inventoryService.js";
 import { findRequestById } from "../services/requestService.js";
 import {
@@ -34,6 +35,7 @@ export const create = async (req, res) => {
   const request = await findRequestOr404(req.validated.params.id);
   const response = await createResponse(request, req.user, req.validated.body.unitsOffered);
   await audit.recordActivity(req.user, "response.create", target(response), { requestId: request._id });
+  await notifications.notifyResponse(request, response, req.user);
   res.status(201).json({ success: true, response });
 };
 
@@ -54,6 +56,7 @@ export const confirm = async (req, res) => {
     requestId: request._id,
     unitsApplied: result.response.unitsApplied,
   });
+  await notifications.notifyResponseDecision(result.request, result.response, "confirmed");
   res.json({ success: true, request: result.request, response: result.response });
 };
 
@@ -63,6 +66,7 @@ export const decline = async (req, res) => {
   const response = await findResponseOr404(req.validated.params.responseId);
   const updated = await declineResponse(request, response, req.user._id);
   await audit.recordActivity(req.user, "response.decline", target(updated), { requestId: request._id });
+  await notifications.notifyResponseDecision(request, updated, "declined");
   res.json({ success: true, response: updated });
 };
 

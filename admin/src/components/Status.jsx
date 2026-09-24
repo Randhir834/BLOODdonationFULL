@@ -1,4 +1,9 @@
-import { APPROVAL_ROLES, REQUEST_STATUS_LABEL, UNIT_STATUS_LABEL, VERIFICATION_LABEL } from "../lib/constants";
+import {
+  APPROVAL_ROLES,
+  REQUEST_STATUS_LABEL,
+  UNIT_STATUS_LABEL,
+  VERIFICATION_LABEL,
+} from "../lib/constants";
 import { ROLE_LABEL } from "../lib/format";
 
 // Small inline icons, they always come with a text label next to them.
@@ -18,18 +23,19 @@ export function Icon({ name, size = 16 }) {
   );
 }
 
-/** Status = an icon in the status colour + a text label, never colour alone. */
+/** Status = a coloured dot + a word, never colour alone. */
 export function StatusPill({ kind, children }) {
   return (
     <span className={`pill pill-${kind}`}>
-      <Icon name={kind} size={14} />
+      <span className="dot" aria-hidden="true" />
       {children}
     </span>
   );
 }
 
+/** A role is just text: it does not need a box. */
 export function RoleBadge({ role }) {
-  return <span className="badge">{ROLE_LABEL[role] || role}</span>;
+  return <span className="role-text">{ROLE_LABEL[role] || role}</span>;
 }
 
 const APPROVAL_KIND = { approved: "good", pending: "warning", rejected: "critical" };
@@ -67,7 +73,13 @@ export function UnitStatus({ record }) {
   return <StatusPill kind={UNIT_KIND[status] || "info"}>{UNIT_STATUS_LABEL[status] || status}</StatusPill>;
 }
 
-const REQUEST_KIND = { pending: "warning", fulfilled: "good", rejected: "critical", cancelled: "info", expired: "critical" };
+const REQUEST_KIND = {
+  pending: "warning",
+  fulfilled: "good",
+  rejected: "critical",
+  cancelled: "info",
+  expired: "critical",
+};
 
 /**
  * A blood request's lifecycle. `request.status` stays "pending" even past its needed-by date until a

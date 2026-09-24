@@ -26,7 +26,13 @@ vi.mock("../src/services/inventoryService.js", async (importOriginal) => ({
   ...(await importOriginal()),
   populate: vi.fn(async (records) => records),
 }));
-vi.mock("../src/services/notificationService.js", () => ({ notifyEligibleUsers: vi.fn() }));
+vi.mock("../src/services/notificationService.js", () => ({
+  notifyNewRequest: vi.fn(),
+  notifyRequestUpdate: vi.fn(),
+  notifyRequestCancelled: vi.fn(),
+  notifyResponse: vi.fn(),
+  notifyResponseDecision: vi.fn(),
+}));
 vi.mock("../src/services/responseService.js", () => ({
   createResponse: vi.fn(),
   findResponseById: vi.fn(),
@@ -41,6 +47,7 @@ vi.mock("../src/services/responseService.js", () => ({
 const { createApp } = await import("../src/app.js");
 const { verifyIdToken } = await import("../src/services/tokenService.js");
 const audit = await import("../src/services/auditService.js");
+const notifications = await import("../src/services/notificationService.js");
 const users = await import("../src/services/userService.js");
 const requests = await import("../src/services/requestService.js");
 const inventory = await import("../src/services/inventoryService.js");
@@ -115,6 +122,8 @@ describe("creating a request", () => {
       { type: "request", id: "r1", label: "450 ML A+" },
       { organisation: "org1", city: "Bengaluru", priority: "normal" }
     );
+    // Everyone else in the requester's city hears about it, wherever the request came from.
+    expect(notifications.notifyNewRequest).toHaveBeenCalledWith(pendingRequest);
   });
 
   it("rejects an invalid request before it reaches the service", async () => {
@@ -130,6 +139,7 @@ describe("creating a request", () => {
     const res = await authed(request(app).post("/api/v1/requests")).send(body);
     expect(res.status).toBe(409);
     expect(audit.recordActivity).not.toHaveBeenCalled();
+    expect(notifications.notifyNewRequest).not.toHaveBeenCalled();
   });
 });
 
@@ -249,6 +259,11 @@ describe("responding to a request", () => {
       { type: "request", id: "r1", label: "450 ML A+" },
       { fulfilledRecordId: "rec1" }
     );
+    expect(notifications.notifyRequestUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "fulfilled" }),
+      ["h1"],
+      "Your blood request was fulfilled"
+    );
   });
 
   it("answers 404 for a request that does not exist", async () => {
@@ -301,6 +316,7 @@ describe("responding to a request", () => {
       ...pendingRequest,
       status: "cancelled",
     });
+    expect(notifications.notifyRequestCancelled).toHaveBeenCalledWith({ ...pendingRequest, status: "cancelled" });
   });
 
   it("does not let a hospital or donor fulfil or reject a request", async () => {
@@ -337,6 +353,7 @@ describe("responding to someone else's request", () => {
       { type: "response", id: "resp1", label: "1 unit(s)" },
       { requestId: "r1" }
     );
+    expect(notifications.notifyResponse).toHaveBeenCalledWith(pendingRequest, pendingResponse, donor);
   });
 
   it("defaults to offering 1 unit", async () => {
@@ -377,6 +394,11 @@ describe("responding to someone else's request", () => {
     expect(res.status).toBe(200);
     expect(responses.confirmResponse).toHaveBeenCalledWith(pendingRequest, pendingResponse, "h1");
     expect(res.body.response.status).toBe("confirmed");
+    expect(notifications.notifyResponseDecision).toHaveBeenCalledWith(
+      expect.objectContaining({ unitsConfirmed: 1 }),
+      confirmed,
+      "confirmed"
+    );
   });
 
   it("lets the requester decline a response", async () => {
@@ -387,6 +409,11 @@ describe("responding to someone else's request", () => {
     const res = await authed(request(app).post("/api/v1/requests/r1/responses/resp1/decline"));
     expect(res.status).toBe(200);
     expect(responses.declineResponse).toHaveBeenCalledWith(pendingRequest, pendingResponse, "h1");
+    expect(notifications.notifyResponseDecision).toHaveBeenCalledWith(
+      pendingRequest,
+      { ...pendingResponse, status: "declined" },
+      "declined"
+    );
   });
 
   it("lets a responder withdraw their own offer", async () => {

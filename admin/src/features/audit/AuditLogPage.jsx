@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Empty, ErrorNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead } from "../../components/Feedback";
 import { TableSkeleton } from "../../components/Skeleton";
 import { useApi } from "../../hooks/useApi";
 import { useRealtime } from "../../hooks/useRealtime";
@@ -70,15 +70,10 @@ export default function AuditLogPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Activity log</h1>
-          <p>
-            What admins did on this website, and what blood banks and hospitals did in the app. It can not be
-            edited.
-          </p>
-        </div>
-      </div>
+      <PageHead title="Activity log">
+        What admins did on this website, and what blood banks and hospitals did in the app. It can not be
+        edited.
+      </PageHead>
 
       <section className="card">
         <div className="filters">
@@ -94,9 +89,9 @@ export default function AuditLogPage() {
           </label>
         </div>
 
-        <ErrorNote message={error} onRetry={reload} />
-        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()} hidden={!!error && !data}>
+          <table className="cards">
             <thead>
               <tr>
                 <th>When</th>
@@ -110,13 +105,13 @@ export default function AuditLogPage() {
               {!data && loading && <TableSkeleton columns={5} />}
               {logs.map((log) => (
                 <tr key={log._id}>
-                  <td>{fmtDateTime(log.at)}</td>
-                  <td>
+                  <td data-label="When">{fmtDateTime(log.at)}</td>
+                  <td data-label="Who">
                     <Who log={log} />
                   </td>
-                  <td>{ACTION_LABEL[log.action] || log.action}</td>
-                  <td>{log.targetLabel || "-"}</td>
-                  <td>
+                  <td data-label="Action">{ACTION_LABEL[log.action] || log.action}</td>
+                  <td data-label="On">{log.targetLabel || "-"}</td>
+                  <td data-label="Details">
                     <Summary log={log} />
                     {log.details && Object.keys(log.details).length > 0 && (
                       <details>

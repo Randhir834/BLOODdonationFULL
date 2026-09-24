@@ -1,5 +1,6 @@
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
+import { PageLoading } from "../components/Feedback";
 import Layout from "../components/Layout";
 import { useAuth } from "../features/auth/authContext";
 import LoginPage from "../features/auth/LoginPage";
@@ -16,7 +17,7 @@ const AuditLogPage = lazy(() => import("../features/audit/AuditLogPage"));
 export default function App() {
   const { loading, admin } = useAuth();
 
-  if (loading) return <div className="center">Loading…</div>;
+  if (loading) return <PageLoading />;
   if (!admin) {
     return (
       <Routes>
@@ -26,7 +27,7 @@ export default function App() {
   }
 
   return (
-    <Suspense fallback={<div className="center">Loading…</div>}>
+    <Suspense fallback={<PageLoading />}>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<DashboardPage />} />

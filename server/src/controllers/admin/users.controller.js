@@ -1,5 +1,6 @@
 import { NAME_FIELD, RECORD_FIELD, ROLES, USER_STATUS, VERIFICATION } from "../../constants/index.js";
 import * as audit from "../../services/auditService.js";
+import * as notifications from "../../services/notificationService.js";
 import { findRecords, organisationTotals, populate } from "../../services/inventoryService.js";
 import {
   deleteUser,
@@ -115,6 +116,7 @@ export const approve = async (req, res) => {
   await audit.record(req.admin, "user.approve", target(user), {
     registrationNumber: user.registrationNumber,
   });
+  await notifications.notifyAccountDecision(user, VERIFICATION.APPROVED);
   res.json({ success: true, user: withStatus(user) });
 };
 
@@ -127,6 +129,7 @@ export const reject = async (req, res) => {
     adminEmail: req.admin.email,
   });
   await audit.record(req.admin, "user.reject", target(user), { reason });
+  await notifications.notifyAccountDecision(user, VERIFICATION.REJECTED, reason);
   res.json({ success: true, user: withStatus(user) });
 };
 
@@ -134,6 +137,7 @@ export const reject = async (req, res) => {
 export const remove = async (req, res) => {
   const user = await findOr404(req.validated.params.id);
   await deleteUser(user._id);
+  await notifications.deleteFor(user._id).catch(() => {});
   await audit.record(req.admin, "user.delete", target(user), { role: user.role, phone: user.phone });
   res.json({ success: true, message: "User deleted" });
 };

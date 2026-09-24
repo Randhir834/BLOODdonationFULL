@@ -1,0 +1,364 @@
+/* =====================================================================
+   Screens: dashboard widgets, charts, sign-in, map
+   ===================================================================== */
+
+/* ---------- needs attention ---------- */
+.attention {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.attention > li {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.attention > li:first-child {
+  padding-top: 0;
+}
+.attention > li:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.attention > li > svg {
+  margin-top: 0.1875rem;
+}
+.attention .title {
+  font-weight: 600;
+}
+.attention .detail {
+  margin-top: 0.0625rem;
+  color: var(--text-2);
+}
+.attention ul {
+  margin: 0.375rem 0 0;
+  padding-left: 1rem;
+}
+.all-good {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.25rem 0;
+  color: var(--text-2);
+}
+.status-list {
+  display: grid;
+  gap: 0;
+}
+.status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--line);
+}
+.status-row:first-child {
+  padding-top: 0;
+}
+.status-row:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.status-row > span:first-child {
+  color: var(--text-2);
+}
+
+/* ---------- stock bars ---------- */
+.stock-rows {
+  --c-group: 2.5rem;
+  --c-value: 6rem;
+  --c-state: 4rem;
+  --gap: 0.625rem;
+  position: relative;
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 1.5rem;
+}
+.stock-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--c-group) minmax(0, 1fr) var(--c-value) var(--c-state);
+  align-items: center;
+  gap: var(--gap);
+  /* vertical padding only: the threshold marker is placed assuming the row has no side padding */
+  padding: 0.375rem 0;
+  border-radius: 0.375rem;
+}
+.stock-row.is-hover,
+.stock-row:focus-visible {
+  background: var(--bg);
+}
+.stock-group {
+  font-weight: 700;
+  color: var(--accent);
+}
+.stock-track {
+  position: relative;
+  height: 0.625rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+.stock-bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--positive);
+}
+.stock-bar.is-low {
+  background: var(--warning);
+}
+.stock-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.stock-threshold {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--line-strong);
+  pointer-events: none;
+  left: calc(
+    var(--c-group) + var(--gap) + (100% - var(--c-group) - var(--c-value) - var(--c-state) - 3 * var(--gap)) *
+      var(--r)
+  );
+}
+.stock-threshold span {
+  position: absolute;
+  top: 0;
+  left: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+@media (max-width: 999px) {
+  .stock-rows {
+    --c-group: 2.25rem;
+    --c-value: 5.25rem;
+    --c-state: 3.5rem;
+  }
+}
+@media (max-width: 520px) {
+  .stock-rows {
+    --c-value: 4.5rem;
+    --c-state: 3rem;
+    --gap: 0.375rem;
+  }
+}
+
+/* ---------- line chart ---------- */
+.trend-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.key-line {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.1875rem;
+  border-radius: 0.125rem;
+}
+.trend-plot {
+  position: relative;
+  min-height: 15.625rem;
+}
+.trend-plot svg {
+  display: block;
+  max-width: 100%;
+  touch-action: pan-y;
+}
+.trend-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 0 1rem;
+  color: var(--text-3);
+  text-align: center;
+  pointer-events: none;
+}
+.trend-table {
+  max-height: 18.75rem;
+  overflow: auto;
+}
+.grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+.crosshair {
+  stroke: var(--line-strong);
+  stroke-width: 1;
+}
+.axis-text {
+  fill: var(--text-3);
+  font-size: 11px;
+}
+.end-label {
+  fill: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.tip {
+  position: absolute;
+  z-index: 3;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-pop);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.tip-sub {
+  color: var(--text-2);
+}
+.tip-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.stock-tip {
+  top: -2.125rem;
+  left: 3.75rem;
+}
+
+/* ---------- sign in ---------- */
+.login {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 1.5rem 1rem;
+}
+.login-card {
+  width: min(26rem, 100%);
+  padding: 2.5rem 2rem 2rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 1rem);
+  background: var(--surface);
+  box-shadow: 0 0.25rem 1.5rem rgba(90, 20, 26, 0.06);
+}
+.login-brand {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.login-brand img {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 0.875rem;
+}
+.login h1 {
+  text-align: center;
+}
+.login .lead {
+  margin: 0.375rem 0 1.75rem;
+  text-align: center;
+  color: var(--text-2);
+}
+.login input {
+  width: 100%;
+}
+.login .btn {
+  margin-top: 0.5rem;
+}
+.login-foot {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-3);
+}
+@media (max-width: 520px) {
+  .login {
+    align-items: start;
+    padding-top: 2rem;
+  }
+  .login-card {
+    padding: 2rem 1.25rem 1.5rem;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+/* ---------- map ---------- */
+.map-frame {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.map-pin-shape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: 50% 50% 50% 0;
+  background: var(--accent);
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.35);
+  transform: rotate(45deg);
+}
+.map-pin-shape svg {
+  transform: rotate(-45deg);
+}
+.map-pin-shape path {
+  fill: none;
+  stroke: var(--on-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.map-pin-shape.map-pin-muted {
+  background: var(--info);
+}
+.leaflet-container {
+  font-family: var(--font);
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
+}
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+.leaflet-popup-content {
+  margin: 0.75rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+.leaflet-popup-content strong {
+  display: block;
+  margin-bottom: 0.125rem;
+  font-size: 0.875rem;
+}
+.leaflet-bar {
+  border: 1px solid var(--line-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+}

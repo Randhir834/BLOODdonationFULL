@@ -1,6 +1,7 @@
 import axios from "axios";
 import { signOut } from "firebase/auth";
 import { env } from "./env";
+import { notify } from "./notify";
 import { auth } from "./firebase";
 
 export const api = axios.create({ baseURL: env.apiUrl, timeout: 20_000 });
@@ -19,7 +20,11 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && auth.currentUser) signOut(auth);
+    if (error.response?.status === 401 && auth.currentUser) {
+      // Say why the sign-in screen is suddenly back, instead of it happening silently.
+      notify.info("You were signed out. Please sign in again.");
+      signOut(auth);
+    }
     return Promise.reject(error);
   }
 );

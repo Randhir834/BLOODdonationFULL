@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Empty, ErrorNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead } from "../../components/Feedback";
 import { TableSkeleton } from "../../components/Skeleton";
 import { StatusPill } from "../../components/Status";
 import { useToast } from "../../components/toastContext";
@@ -75,9 +75,9 @@ export default function LocationsPage() {
       if (action === "suspend") await suspendCamp(camp._id);
       if (action === "reactivate") await reactivateCamp(camp._id);
       if (action === "delete") await removeCamp(camp._id);
-      toast(
-        action === "suspend" ? "Camp hidden from the map" : action === "reactivate" ? "Camp reactivated" : "Camp deleted"
-      );
+      if (action === "suspend") toast("Camp hidden");
+      else if (action === "reactivate") toast("Camp reactivated");
+      else toast("Camp deleted");
       setConfirming(null);
       reload();
     } catch (err) {
@@ -89,22 +89,21 @@ export default function LocationsPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Locations</h1>
-          <p>Every donor, hospital, blood bank and camp currently sharing its location.</p>
-        </div>
-      </div>
+      <PageHead title="Locations">
+        Every donor, hospital, blood bank and camp currently sharing its location.
+      </PageHead>
 
       <section className="card">
-        <ErrorNote message={error} onRetry={reload} />
-        <div className="filters">
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className="chip-row" role="group" aria-label="Show">
           {FILTERS.map((filter) => (
-            <label key={filter.key} className="checkbox-field">
+            <label key={filter.key} className="chip-toggle">
               <input
                 type="checkbox"
                 checked={show[filter.key]}
-                onChange={(event) => setShow((current) => ({ ...current, [filter.key]: event.target.checked }))}
+                onChange={(event) =>
+                  setShow((current) => ({ ...current, [filter.key]: event.target.checked }))
+                }
               />
               {filter.label} ({rows.filter((row) => row.kind === filter.key).length})
             </label>
@@ -121,7 +120,7 @@ export default function LocationsPage() {
 
       <section className="card">
         <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+          <table className="cards">
             <thead>
               <tr>
                 <th>Name</th>
@@ -136,20 +135,20 @@ export default function LocationsPage() {
               {!data && loading && <TableSkeleton columns={6} />}
               {rows.map((row) => (
                 <tr key={row.id}>
-                  <td>
+                  <td data-label="Name">
                     {row.name}
                     {row.phone && <div className="sub">{row.phone}</div>}
                   </td>
-                  <td>{KIND_LABEL[row.kind]}</td>
-                  <td>{row.address || "-"}</td>
-                  <td>
+                  <td data-label="Type">{KIND_LABEL[row.kind]}</td>
+                  <td data-label="Address">{row.address || "-"}</td>
+                  <td data-label="Status">
                     {row.status === "suspended" ? (
                       <StatusPill kind="critical">{row.kind === "camp" ? "Hidden" : "Suspended"}</StatusPill>
                     ) : (
                       <StatusPill kind="good">Active</StatusPill>
                     )}
                   </td>
-                  <td>{fmtShort(row.updatedAt)}</td>
+                  <td data-label="Last updated">{fmtShort(row.updatedAt)}</td>
                   <td>
                     {row.camp && (
                       <div className="row-actions">
@@ -174,7 +173,7 @@ export default function LocationsPage() {
                         )}
                         <button
                           type="button"
-                          className="btn btn-small btn-danger"
+                          className="btn btn-small btn-danger-quiet"
                           disabled={busyId === row.camp._id}
                           onClick={() => setConfirming({ action: "delete", camp: row.camp })}
                         >

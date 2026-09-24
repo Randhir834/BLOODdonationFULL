@@ -1,11 +1,17 @@
-import { Empty, ErrorNote, TruncatedNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead, TruncatedNote } from "../../components/Feedback";
 import Pagination from "../../components/Pagination";
 import { TableSkeleton } from "../../components/Skeleton";
 import { RequestStatus, RoleBadge } from "../../components/Status";
 import { useApi } from "../../hooks/useApi";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useRealtime } from "../../hooks/useRealtime";
-import { BLOOD_GROUPS, PAGE_SIZE, REQUEST_COMPONENT_LABEL, REQUEST_PRIORITY_LABEL, ROLE_LABEL } from "../../lib/constants";
+import {
+  BLOOD_GROUPS,
+  PAGE_SIZE,
+  REQUEST_COMPONENT_LABEL,
+  REQUEST_PRIORITY_LABEL,
+  ROLE_LABEL,
+} from "../../lib/constants";
 import { fmtDateTime, fmtMl, nameOf } from "../../lib/format";
 
 const ROLES = Object.keys(ROLE_LABEL);
@@ -26,12 +32,9 @@ export default function RequestsPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Blood requests</h1>
-          <p>Every request for blood, from every donor, hospital and blood bank in one place.</p>
-        </div>
-      </div>
+      <PageHead title="Blood requests">
+        Every request for blood, from every donor, hospital and blood bank in one place.
+      </PageHead>
 
       <section className="card">
         <div className="filters">
@@ -75,15 +78,17 @@ export default function RequestsPage() {
             <input value={filters.q} onChange={(event) => query.update({ q: event.target.value })} />
           </label>
           {filtered && (
-            <button type="button" className="btn btn-small" onClick={query.reset}>
-              Clear filters
-            </button>
+            <div className="filters-actions">
+              <button type="button" className="btn btn-small" onClick={query.reset}>
+                Clear filters
+              </button>
+            </div>
           )}
         </div>
 
-        <ErrorNote message={error} onRetry={reload} />
-        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()} hidden={!!error && !data}>
+          <table className="cards cards-xl">
             <thead>
               <tr>
                 <th>When</th>
@@ -102,21 +107,25 @@ export default function RequestsPage() {
               {!data && loading && <TableSkeleton columns={10} />}
               {(data?.requests || []).map((request) => (
                 <tr key={request._id}>
-                  <td>{fmtDateTime(request.createdAt)}</td>
-                  <td>
+                  <td data-label="When">{fmtDateTime(request.createdAt)}</td>
+                  <td data-label="Requester">
                     {nameOf(request.requester)}
                     <div className="sub">
                       <RoleBadge role={request.requesterRole} /> {request.requesterPhone}
                     </div>
                   </td>
-                  <td>{request.patientName}</td>
-                  <td>{request.bloodGroup}</td>
-                  <td>{REQUEST_COMPONENT_LABEL[request.component] || request.component}</td>
-                  <td className="num">{fmtMl(request.quantity)}</td>
-                  <td>{REQUEST_PRIORITY_LABEL[request.priority] || request.priority}</td>
-                  <td>{request.location}</td>
-                  <td>{request.organisation ? nameOf(request.organisation) : "—"}</td>
-                  <td>
+                  <td data-label="Patient">{request.patientName}</td>
+                  <td data-label="Group">{request.bloodGroup}</td>
+                  <td data-label="Component">
+                    {REQUEST_COMPONENT_LABEL[request.component] || request.component}
+                  </td>
+                  <td className="num" data-label="Units">
+                    {fmtMl(request.quantity)}
+                  </td>
+                  <td data-label="Urgency">{REQUEST_PRIORITY_LABEL[request.priority] || request.priority}</td>
+                  <td data-label="Location">{request.location}</td>
+                  <td data-label="Blood bank">{request.organisation ? nameOf(request.organisation) : "—"}</td>
+                  <td data-label="Status">
                     <RequestStatus request={request} />
                   </td>
                 </tr>

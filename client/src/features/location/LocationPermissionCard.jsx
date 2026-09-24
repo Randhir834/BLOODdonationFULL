@@ -4,7 +4,6 @@ import { Icon } from "../../components/Icon";
 import Switch from "../../components/Switch";
 import { errorMessage } from "../../lib/api";
 import { fmtAgo } from "../../lib/format";
-import { notify } from "../../lib/notify";
 import { refreshProfile } from "../auth/authService";
 import { setLocationSharing } from "./locationApi";
 import { ensureLocationPermission } from "./permission";
@@ -37,8 +36,6 @@ export default function LocationPermissionCard({ user }) {
       }
       await setLocationSharing(next);
       await refreshProfile(dispatch);
-      if (next) notify.success("Location sharing is on", RATIONALE[user.role]);
-      else notify.info("Location sharing is off", "Your stored location was deleted.");
     } catch (err) {
       setError(errorMessage(err, "Could not update location sharing. Please try again."));
     } finally {

@@ -98,7 +98,9 @@ describe("RequestsPage", () => {
   it("shows a role badge naming a donor or blood bank requester too", async () => {
     api.get.mockResolvedValue({
       data: {
-        requests: [bloodRequest({ _id: "r2", requesterRole: "donar", requester: { _id: "d1", name: "Asha" } })],
+        requests: [
+          bloodRequest({ _id: "r2", requesterRole: "donar", requester: { _id: "d1", name: "Asha" } }),
+        ],
         ...page,
       },
     });

@@ -63,10 +63,10 @@ export default function CodeStep({ phone, onChangeNumber }) {
       setCode("");
       setError("");
       setSeconds(RESEND_SECONDS);
-      notify.success("New code sent", `We texted a fresh code to ${formatPhone(phone)}.`);
+      notify.success("Code sent");
     } catch (err) {
       console.error(err);
-      notify.error("Could not send a new code", authErrorMessage(err));
+      notify.error(authErrorMessage(err));
     } finally {
       resending.current = false;
       setBusy(false);

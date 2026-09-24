@@ -13,6 +13,9 @@ import { AuthContext } from "./authContext";
 
 // Signed out automatically after this long without any mouse or keyboard activity.
 const IDLE_MS = 30 * 60 * 1000;
+// Why the sign-in screen came back on its own (idle timeout, or the server ending the session), shown once.
+export const SIGNED_OUT_KEY = "bb.admin.signedOut";
+const IDLE_NOTICE = "You were signed out after 30 minutes of inactivity.";
 const ACTIVITY_EVENTS = ["mousemove", "keydown", "click", "scroll", "touchstart"];
 
 export default function AuthProvider({ children }) {
@@ -23,7 +26,14 @@ export default function AuthProvider({ children }) {
     () =>
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (!firebaseUser) {
-          setState((current) => ({ loading: false, admin: null, notice: current.notice }));
+          let reason = null;
+          try {
+            reason = sessionStorage.getItem(SIGNED_OUT_KEY);
+            sessionStorage.removeItem(SIGNED_OUT_KEY);
+          } catch {
+            // storage unavailable: the reason is simply not shown
+          }
+          setState((current) => ({ loading: false, admin: null, notice: reason || current.notice }));
           return;
         }
         try {
@@ -51,11 +61,17 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     if (!isSignedIn) return undefined;
     let timer;
-    // Signs out quietly: no banner on the next login screen, only an explicit "Sign out" shows nothing
-    // either, so this stays consistent with that (see `logout` below).
+    // An explicit "Sign out" says nothing; running out of time says why, on the sign-in screen that follows.
     const arm = () => {
       clearTimeout(timer);
-      timer = setTimeout(() => signOut(auth), IDLE_MS);
+      timer = setTimeout(() => {
+        try {
+          sessionStorage.setItem(SIGNED_OUT_KEY, IDLE_NOTICE);
+        } catch {
+          // storage unavailable: the reason is simply not shown
+        }
+        signOut(auth);
+      }, IDLE_MS);
     };
     ACTIVITY_EVENTS.forEach((name) => window.addEventListener(name, arm, { passive: true }));
     arm();

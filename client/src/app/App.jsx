@@ -1,10 +1,9 @@
 import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Slide, ToastContainer } from "react-toastify";
 import AppShell from "../components/AppShell";
 import RoleOnly from "../components/RoleOnly";
 import Splash from "../components/Splash";
-import { ToastIcon } from "../components/Toast";
+import Toaster from "../components/Toaster";
 import { ROLES } from "../lib/constants";
 
 // Each screen is its own download, so the first paint only loads what it shows.
@@ -38,15 +37,7 @@ const { ORGANISATION, DONOR, HOSPITAL } = ROLES;
 export default function App() {
   return (
     <>
-      <ToastContainer
-        position="top-center"
-        limit={2}
-        autoClose={4000}
-        transition={Slide}
-        closeButton={false}
-        icon={ToastIcon}
-        pauseOnFocusLoss={false}
-      />
+      <Toaster />
       <Suspense fallback={<Splash />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />

@@ -1,16 +1,19 @@
 # Blood Bank
 
-Three separate projects that share one Firebase project (Firestore + Authentication):
+Four separate projects that share one Firebase project (Firestore + Authentication):
 
 | Folder                | What it is                                                       | Who uses it                                  | Sign-in                |
 | --------------------- | ---------------------------------------------------------------- | -------------------------------------------- | ---------------------- |
 | [server/](server)     | REST API (Node.js, Express, Firebase Admin)                      | both apps                                    | verifies Firebase tokens |
 | [client/](client)     | User app: phone-sized UI, runs in the browser, can be installed  | donors, hospitals, blood banks               | phone number + SMS OTP |
 | [admin/](admin)       | Admin website (React)                                            | admins only                                  | email + password       |
+| [hospitalandbloodbanksubadmin/](hospitalandbloodbanksubadmin) | Hospital and blood bank website (React): register, stock, requests | hospitals and blood banks | phone number + SMS OTP |
 
-The API has two doors, `/api/v1/*` for the user app and `/api/admin/*` for the admin website. They use different
-accounts and different allowed browser origins: an admin token is refused by the user API and a phone-number
-token is refused by the admin API.
+The API has three doors: `/api/v1/*` for the user app, `/api/admin/*` for the admin website and `/api/org/*` for the
+hospital and blood bank website. Each is open only to its own website's origin. An admin token is refused by the user
+and organisation APIs, a phone-number token is refused by the admin API, and the organisation API refuses donors.
+A hospital or blood bank has **one account for both the mobile app and its website**: the same phone number, the
+same stock, the same requests.
 
 ```
 server/
@@ -47,19 +50,22 @@ Node.js 20.12 or newer. A Firebase project with **Firestore** and **Authenticati
    key at `server/credentials/serviceAccountKey.json` (Firebase console > Project settings > Service accounts).
 2. **Client**: `cd client && npm install`, copy `.env.example` to `.env` and fill in the Firebase web app config.
 3. **Admin**: `cd admin && npm install`, copy `.env.example` to `.env` and fill in the Firebase web app config.
-4. Create the first admin: `cd server && npm run create-admin -- you@example.com "Your Name"`.
+4. **Hospital and blood bank website**: `cd hospitalandbloodbanksubadmin && npm install`, copy `.env.example` to `.env`
+   and fill in the same Firebase web app config the user app uses. Put its address in `ORG_ORIGIN` in `server/.env`.
+5. Create the first admin: `cd server && npm run create-admin -- you@example.com "Your Name"`.
 
 ## Run (development)
 
-Three terminals:
+Four terminals:
 
 | Command                  | Address               |
 | ------------------------ | --------------------- |
 | `cd server && npm run dev`  | http://localhost:8080 |
 | `cd client && npm run dev`  | http://localhost:3100 |
 | `cd admin && npm run dev`   | http://localhost:3101 |
+| `cd hospitalandbloodbanksubadmin && npm run dev` | http://localhost:3102 |
 
-In every folder: `npm test`, `npm run lint`, `npm run format` (client and admin also `npm run build`).
+In every folder: `npm test`, `npm run lint`, `npm run format` (the three websites also `npm run build`).
 The server tests run the real services against a small in-memory Firestore (`server/tests/helpers/fakeFirestore.js`),
 so stock checks, running totals and approval rules are tested without a database. It handles one request at a
 time, so it does not test two people racing for the same blood, that needs the Firebase emulator.
@@ -86,12 +92,14 @@ Every response is `{ success: true, ... }` or `{ success: false, message, errors
 | `GET /directory/hospitals`           | blood bank           | hospitals it has issued blood to                         |
 | `GET /directory/organisations`       | donor, hospital      | blood banks that have dealt with the user                |
 | `GET /directory/blood-banks`         | hospital              | every active, approved blood bank, to request from        |
-| `POST /requests`                     | hospital              | ask one blood bank for blood                              |
+| `POST /requests`                     | any role              | raise a request, broadcast to the requester city (optionally naming one blood bank) |
 | `GET /requests?status=`              | blood bank            | requests naming it                                        |
-| `GET /requests/mine?status=`         | hospital              | the hospital's own requests                                |
+| `GET /requests/mine?status=`         | any role              | the user's own requests                                     |
+| `GET /requests/nearby?status=`       | any role              | other people's requests in the user's city                   |
+| `POST /requests/:id/respond`, `.../responses/:responseId/confirm`, `.../decline`, `.../withdraw` | any role | offer units for a request, and the requester deciding on offers |
 | `POST /requests/:id/fulfil`          | blood bank            | issues the blood now (FEFO), same as an ordinary issue     |
 | `POST /requests/:id/reject`          | blood bank            | turns it down, with a reason the hospital sees (`reason`)  |
-| `POST /requests/:id/cancel`          | hospital               | withdraws its own request while still pending              |
+| `POST /requests/:id/cancel`          | requester              | withdraws its own request while still pending              |
 
 Every route in the table except the two under `/auth` also needs an approved account (see below).
 
@@ -146,14 +154,14 @@ Every "in" record is one blood unit (one bag), not just an ML total.
 
 ## Blood requests
 
-A hospital can ask a specific blood bank for blood, instead of only receiving what a blood bank records
-for it unprompted.
+Any donor, hospital or blood bank can raise a request, for themselves or for someone else. It is broadcast to the
+requester's city rather than to one blood bank (details below). What follows is how a request that names one blood
+bank directly still works, and it is what the mobile app and the website both use for it.
 
-- **Asking:** a hospital picks a blood bank (from `/directory/blood-banks`, every active, approved one,
-  whether or not they have dealt with each other before), a blood group, an amount, a priority (normal /
-  urgent / emergency) and an optional note. The request starts `pending`. The blood bank is checked for
-  existing and being approved, not for having enough stock: that is only known for certain when the
-  request is answered.
+- **Asking:** a blood group, an amount, a priority (normal / urgent / emergency), the patient, where the blood is
+  needed, and optional notes. The request starts `pending`. It may name a blood bank (from `/directory/blood-banks`),
+  which is checked for existing and being approved, not for having enough stock: that is only known for certain
+  when the request is answered.
 - **Fulfilling** issues the blood right away, the same FEFO transaction as an ordinary issue, and links the
   request to the resulting record. If there is not enough stock it fails with the same "Only X ML
   available" error as issuing does normally, and the request is left `pending` to try again later or reject.
@@ -165,10 +173,84 @@ for it unprompted.
   scheduler this project does not have; without one, a fake timeout would be worse than the current honest,
   synchronous flow.
 - The admin dashboard's "Needs attention" list separately counts emergency requests (critical) and other
-  pending requests (info), across every blood bank; there is no dedicated admin requests page yet.
-- Not built: routing one request to several blood banks at once (a hospital must currently pick one),
-  and notifications (push, SMS or email) when a request's state changes — this project has no
-  notification infrastructure at all yet.
+  pending requests (info), across every blood bank, and the admin website has a Requests page.
+- A request no longer has to name a blood bank: it is broadcast to the requester's city (see "Requests, offers and
+  notifications" below). Naming one is still accepted, and that blood bank alone can then fulfil or reject it.
+
+## Hospital and blood bank website
+
+[hospitalandbloodbanksubadmin/](hospitalandbloodbanksubadmin) is where a hospital or blood bank registers and runs
+its blood operations. It uses the admin website's white-and-red design, is responsive from phones to TVs, and has no
+placeholder text or pre-filled fields (edit forms start blank: blank keeps the saved value).
+
+- **Sign in and registration:** phone number and SMS code, exactly like the mobile app (`VITE_AUTH_MODE=direct` gives
+  the same development shortcut). A number that has not registered is asked for the organisation's details: type
+  (hospital or blood bank), name, registration or licence number, address, city, contact details, opening hours. The
+  account starts as **waiting for approval**; the site shows that and checks for a decision by itself. An admin
+  approves or rejects it in the admin website. A rejection shows the reason, and the organisation can correct its
+  details and **send for review again**. A registration number can only be registered once.
+- **Dashboard:** stock by blood group, what is waiting on the organisation, emergencies in its city, the last 14 days
+  of blood in and out, latest movements, and a "needs attention" list (low or empty groups, units expiring or expired,
+  deliveries to confirm).
+- **Blood stock** (both kinds of account): every unit with its id, group, amount left, source, expiry, storage
+  location and bag number. Record blood in (a blood bank: from a donor with an app account, found by phone number, or
+  a walk-in donor by name; a hospital: from a named supplier), issue blood out first-expiring-first, correct a unit
+  (storage, expiry, and the amount or group while none of it has been issued), discard a unit with a reason. A blood
+  bank issuing to a hospital that has an account records it against that hospital.
+- **Hospital stock is separate.** A blood bank's stock is the existing `inventory` collection (also read by the mobile
+  app and the admin website, and the only one that feeds the platform-wide totals). A hospital's is `hospitalStock`,
+  the same shape and the same code, so a hospital's own blood never inflates the blood bank figures the admin reports.
+- **Deliveries (hospitals):** blood a blood bank issued to the hospital is listed until the hospital confirms it
+  arrived. Confirming creates the hospital's own units with the expiry dates the blood bank gave them, and the blood
+  bank's record shows it was received.
+- **Movement history:** every unit received, issued or discarded, filterable, with a spreadsheet (CSV) export of what
+  the filters show. It is worked out from the stock records, so it can not disagree with stock.
+- **Requests, offers and notifications:** see below.
+- **Profile:** the organisation's details, editing, and sharing its location on the mobile app's nearby map.
+- **Activity log:** what the account did, from the website or the app.
+- Live updates: the website keeps a server-sent-events connection and refreshes when the account's own data changes.
+
+### Requests, offers and notifications
+
+One request page for every kind of account, one list (no tabs): requests the organisation raised, requests sent
+straight to it, and every request raised in its city, including those raised from the mobile app.
+
+- A request is broadcast to the requester's city (`cityKey`). Every other approved hospital and blood bank there gets a
+  **notification** when it is raised, and the requests page lists it too: nobody has to find it through notifications.
+- Each row says how it relates to the organisation and what it can do: **respond** (offer a number of units, checked
+  against its own stock), **withdraw** an offer, **hide** a request that is not for it, **fulfil** or **reject** one
+  sent straight to a blood bank, and for its own requests **edit**, **cancel**, and **confirm or decline** offers.
+- **Issuing blood for a confirmed offer:** once the requester confirms an offer, the responder issues the blood from
+  its own stock (one unit is 450 ML, first-expiring-first, in one transaction, so it can not be issued twice), and the
+  requester is told. For a hospital requester it appears under its deliveries.
+- Notifications (`notifications` collection, one document per recipient) are written for: a new request in the city or
+  sent to the organisation, an offer on its request, the requester's decision on its offer, blood issued for its
+  request, a request it answered being cancelled, fulfilled or rejected, a blood group falling under the low-stock line
+  (once, on the crossing), and an admin's approval decision. They are shown in the website (a bell, a count in the
+  menu, a page, and a short message when one arrives). Writing one never blocks the action that caused it.
+
+**Organisation API, `/api/org`** (hospitals and blood banks; approved unless marked)
+
+| Method and path | What |
+| --------------- | ---- |
+| `POST /auth/register` (verified phone) | create the account (hospital or blood bank only), starts pending |
+| `GET /auth/me` (verified phone) | the account, or `user: null` before registering |
+| `GET, PATCH /profile`, `POST /profile/resubmit` (also while pending or refused) | own details, send a refused registration back |
+| `GET /dashboard`, `GET /activity`, `GET /events` (SSE) | dashboard, the account's activity, live changes for this account only |
+| `GET /stock`, `GET /stock/units`, `GET, PATCH /stock/units/:id` | stock by group, units (filters, sort, paging), correct a unit |
+| `POST /stock/receive`, `/stock/issue`, `/stock/units/:id/discard` | blood in, out (first-expiring-first), discard |
+| `GET /stock/movements` | movement history (filters, paging) |
+| `GET /shipments`, `POST /shipments/:id/receive` | hospitals: blood issued to them, confirm it arrived |
+| `GET /requests`, `GET /requests/:id`, `POST /requests`, `PATCH /requests/:id` | the unified list (with `stats`), one request with offers and a stock check, raise, edit |
+| `POST /requests/:id/offer`, `.../cancel`, `.../fulfil`, `.../reject`, `.../dismiss`, `.../restore` | respond, cancel, fulfil or reject (blood banks), hide or show |
+| `POST /requests/:id/responses/:responseId/confirm`, `.../decline`, `.../withdraw`, `.../dispatch` | decide on an offer, withdraw one, issue blood for a confirmed one |
+| `GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all` | the account's notifications |
+| `GET /reports/movements.csv`, `GET /reports/requests.csv` | spreadsheet exports, following the list's filters |
+| `/camps/*`, `/location/*` | the mobile app's camp and nearby-map routes, unchanged |
+
+Not built on the website: staff sub-accounts with roles (one account per organisation), a blood camps screen (the API
+is there), email and password sign-in, push or SMS notifications (notifications are in the website only, and there is
+no scheduler, so expiring stock is shown live rather than sent), and hospital-to-hospital transfers.
 
 ## Activity log
 

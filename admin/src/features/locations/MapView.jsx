@@ -37,7 +37,12 @@ function Recenter({ center, zoom }) {
 }
 
 /** The centralized live map: every marker in `markers`: [{ id, lat, lng, kind, muted, title, body }]. */
-export default function MapView({ center = DEFAULT_CENTER, zoom = DEFAULT_ZOOM, markers = [], height = 460 }) {
+export default function MapView({
+  center = DEFAULT_CENTER,
+  zoom = DEFAULT_ZOOM,
+  markers = [],
+  height = 460,
+}) {
   return (
     <div className="map-frame" style={{ height }}>
       <MapContainer center={center} zoom={zoom} scrollWheelZoom style={{ height: "100%", width: "100%" }}>

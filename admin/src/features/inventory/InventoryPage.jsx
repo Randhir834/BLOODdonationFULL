@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Empty, ErrorNote, TruncatedNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead, TruncatedNote } from "../../components/Feedback";
 import Pagination from "../../components/Pagination";
 import { TableSkeleton } from "../../components/Skeleton";
 import { UnitStatus } from "../../components/Status";
@@ -52,12 +52,7 @@ export default function InventoryPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Blood records</h1>
-          <p>Every blood addition and issue recorded by the organisations.</p>
-        </div>
-      </div>
+      <PageHead title="Blood records">Every blood addition and issue recorded by the organisations.</PageHead>
 
       <section className="card">
         <div className="filters">
@@ -101,10 +96,7 @@ export default function InventoryPage() {
           </label>
           <label className="field">
             <span>Donor / hospital phone</span>
-            <input
-              value={filters.q}
-              onChange={(event) => query.update({ q: event.target.value })}
-            />
+            <input value={filters.q} onChange={(event) => query.update({ q: event.target.value })} />
           </label>
           <label className="field">
             <span>Unit status</span>
@@ -124,25 +116,27 @@ export default function InventoryPage() {
               <option value="expiry">Soonest to expire</option>
             </select>
           </label>
-          {filters.organisation && (
-            <button
-              type="button"
-              className="btn btn-small"
-              onClick={() => query.update({ organisation: "" })}
-            >
-              Organisation: {organisation ? nameOf(organisation) : "selected"} ×
-            </button>
-          )}
-          {filtered && (
-            <button type="button" className="btn btn-small" onClick={query.reset}>
-              Clear filters
-            </button>
-          )}
+          <div className="filters-actions">
+            {filters.organisation && (
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={() => query.update({ organisation: "" })}
+              >
+                Organisation: {organisation ? nameOf(organisation) : "selected"} ×
+              </button>
+            )}
+            {filtered && (
+              <button type="button" className="btn btn-small" onClick={query.reset}>
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
-        <ErrorNote message={error} onRetry={reload} />
-        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()} hidden={!!error && !data}>
+          <table className="cards cards-xl">
             <thead>
               <tr>
                 <th>When</th>
@@ -162,24 +156,28 @@ export default function InventoryPage() {
                 const person = record.inventoryType === "in" ? record.donar : record.hospital;
                 return (
                   <tr key={record._id}>
-                    <td>{fmtDateTime(record.createdAt)}</td>
-                    <td>{record.inventoryType === "in" ? "Added" : "Issued"}</td>
-                    <td>{record.bloodGroup}</td>
-                    <td className="num">{fmtMl(record.quantity)}</td>
-                    <td>{nameOf(record.organisation)}</td>
-                    <td>
+                    <td data-label="When">{fmtDateTime(record.createdAt)}</td>
+                    <td data-label="Type">{record.inventoryType === "in" ? "Added" : "Issued"}</td>
+                    <td data-label="Group">{record.bloodGroup}</td>
+                    <td className="num" data-label="Amount">
+                      {fmtMl(record.quantity)}
+                    </td>
+                    <td data-label="Organisation">{nameOf(record.organisation)}</td>
+                    <td data-label="Donor / hospital">
                       {nameOf(person)}
                       <div className="sub">{record.phone}</div>
                     </td>
-                    <td>
+                    <td data-label="Unit">
                       <UnitStatus record={record} />
                     </td>
-                    <td>{record.inventoryType === "in" ? fmtDate(record.expiresAt) : "-"}</td>
+                    <td data-label="Expires">
+                      {record.inventoryType === "in" ? fmtDate(record.expiresAt) : "-"}
+                    </td>
                     <td>
                       <div className="row-actions">
                         <button
                           type="button"
-                          className="btn btn-small btn-danger"
+                          className="btn btn-small btn-danger-quiet"
                           onClick={() => setDeleting(record)}
                         >
                           Delete
