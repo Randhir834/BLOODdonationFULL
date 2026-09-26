@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Empty, ErrorNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead } from "../../components/Feedback";
 import { NavIcon } from "../../components/Icons";
 import { TableSkeleton } from "../../components/Skeleton";
 import { useToast } from "../../components/toastContext";
@@ -32,21 +32,22 @@ export default function AdminsPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Admins</h1>
-          <p>People who can sign in to this website. Users of the mobile app can never get in here.</p>
-        </div>
-        <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
-          <NavIcon name="plus" size={16} />
-          Add admin
-        </button>
-      </div>
+      <PageHead
+        title="Admins"
+        actions={
+          <button type="button" className="btn btn-primary" onClick={() => setAdding(true)}>
+            <NavIcon name="plus" size={16} />
+            Add admin
+          </button>
+        }
+      >
+        People who can sign in to this website. Users of the mobile app can never get in here.
+      </PageHead>
 
       <section className="card">
-        <ErrorNote message={error} onRetry={reload} />
-        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()} hidden={!!error && !data}>
+          <table className="cards">
             <thead>
               <tr>
                 <th>Email</th>
@@ -60,18 +61,18 @@ export default function AdminsPage() {
               {!data && loading && <TableSkeleton columns={5} />}
               {(data?.admins || []).map((account) => (
                 <tr key={account._id}>
-                  <td>
+                  <td data-label="Email">
                     {account.email} {account.email === me.email && <span className="badge">You</span>}
                   </td>
-                  <td>{account.name || "-"}</td>
-                  <td>{fmtDateTime(account.createdAt)}</td>
-                  <td>{account.createdBy}</td>
+                  <td data-label="Name">{account.name || "-"}</td>
+                  <td data-label="Added">{fmtDateTime(account.createdAt)}</td>
+                  <td data-label="Added by">{account.createdBy}</td>
                   <td>
                     <div className="row-actions">
                       {account.email !== me.email && (
                         <button
                           type="button"
-                          className="btn btn-small btn-danger"
+                          className="btn btn-small btn-danger-quiet"
                           onClick={() => setRemoving(account)}
                         >
                           Remove

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "../../components/Feedback";
 import Modal from "../../components/Modal";
 import { useToast } from "../../components/toastContext";
 import api, { errorMessage } from "../../lib/api";
@@ -14,7 +15,7 @@ export default function SuspendUserModal({ user, onClose, onDone }) {
     setBusy(true);
     try {
       await api.post(`/users/${user._id}/suspend`, { reason });
-      toast("User suspended and signed out");
+      toast("User suspended");
       onDone();
     } catch (error) {
       toast(errorMessage(error), "error");
@@ -32,6 +33,7 @@ export default function SuspendUserModal({ user, onClose, onDone }) {
             Cancel
           </button>
           <button type="button" className="btn btn-danger" onClick={run} disabled={busy || !reason.trim()}>
+            {busy && <Spinner />}
             Suspend
           </button>
         </>

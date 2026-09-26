@@ -7,6 +7,7 @@ import directoryRoutes from "./directory.routes.js";
 import healthRoutes from "./health.routes.js";
 import inventoryRoutes from "./inventory.routes.js";
 import locationRoutes from "./location.routes.js";
+import orgRoutes from "./org.routes.js";
 import requestRoutes from "./request.routes.js";
 
 /** Liveness and readiness probes for load balancers and orchestrators, outside the versioned APIs. */
@@ -21,6 +22,9 @@ export const userApi = Router()
   .use("/analytics", analyticsRoutes)
   .use("/location", locationRoutes)
   .use("/camps", campRoutes);
+
+/** API for the hospital and blood bank website, signed in with the phone number the organisation registered with. */
+export const orgApi = orgRoutes;
 
 /** API for the admin website, signed in with an admin email and password. */
 export const adminApi = adminRoutes;

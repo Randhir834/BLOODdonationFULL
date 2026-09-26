@@ -626,88 +626,76 @@ button.row:hover {
   color: var(--danger);
 }
 
-/* ---------- toasts ---------- */
-.Toastify__toast-container--top-center {
-  width: min(calc(100vw - 2rem), 26rem) !important;
-  left: 50% !important;
-  margin: 0 !important;
-  padding: calc(env(safe-area-inset-top) + 0.75rem) 0 0 !important;
-  transform: translateX(-50%) !important;
-}
-.Toastify__toast {
+/* ---------- notifications ---------- */
+/* One small message, top centre, on every screen of both products. Only the icon carries the status colour.
+   It never takes a tap: the controls under it stay usable. */
+.toaster {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 0.75rem);
+  right: 0;
+  left: 0;
+  z-index: 80;
   display: flex;
-  align-items: flex-start;
-  min-height: 0 !important;
-  margin-bottom: 0.5rem !important;
-  padding: 0.875rem 1rem !important;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius) !important;
-  background: var(--surface) !important;
-  box-shadow: var(--shadow-pop) !important;
-  color: var(--text) !important;
-  font-family: var(--font) !important;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  pointer-events: none;
 }
-.Toastify__toast-icon {
-  width: 1.375rem !important;
-  margin: 0.0625rem 0 0 !important;
-}
-.Toastify__toast-body {
-  display: flex !important;
-  flex: 1;
-  align-items: flex-start !important;
-  gap: 0.75rem;
-  margin: 0 !important;
-  padding: 0 !important;
-}
-.Toastify__toast-body > div:last-child {
-  flex: 1;
-  min-width: 0;
-}
-.toast-title {
-  font-size: 0.9375rem;
-  line-height: 1.375rem;
-  font-weight: 600;
-}
-.toast-text {
-  margin-top: 0.0625rem;
-  font-size: 0.8125rem;
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(26rem, 100%);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  box-shadow: 0 0.25rem 1rem rgba(60, 22, 22, 0.12);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
   line-height: 1.25rem;
-  color: var(--text-2);
+  animation: toast-in 0.16s ease-out;
 }
-.toast-icon {
-  width: 1.375rem;
-  height: 1.375rem;
+.toast.is-leaving {
+  animation: toast-out 0.15s ease-in forwards;
+}
+.toast svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.toast-icon-success {
+.toast-success svg {
   color: var(--positive);
 }
-.toast-icon-error {
-  color: var(--danger);
+.toast-error svg {
+  color: var(--danger, var(--critical));
 }
-.toast-icon-warning {
+.toast-warning svg {
   color: var(--warning);
 }
-.toast-icon-info {
-  color: var(--accent);
+.toast-info svg {
+  color: var(--text-2);
 }
-.Toastify__progress-bar {
-  height: 0.1875rem !important;
-  opacity: 0.9 !important;
+.toast span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
-.Toastify__progress-bar--success {
-  background: var(--positive) !important;
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
 }
-.Toastify__progress-bar--error {
-  background: var(--danger) !important;
-}
-.Toastify__progress-bar--warning {
-  background: var(--warning) !important;
-}
-.Toastify__progress-bar--info {
-  background: var(--accent) !important;
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
 }

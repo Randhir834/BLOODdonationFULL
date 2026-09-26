@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import ConfirmModal from "../../components/ConfirmModal";
-import { Empty, ErrorNote } from "../../components/Feedback";
+import { Empty, LoadError, PageLoading, Spinner } from "../../components/Feedback";
 import Modal from "../../components/Modal";
 import { AccountStatus, ApprovalStatus, RoleBadge } from "../../components/Status";
 import { useToast } from "../../components/toastContext";
@@ -71,8 +71,8 @@ export default function UserDetail({ id, onClose, onChanged }) {
 
   return (
     <Modal title={user ? nameOf(user) : "User"} onClose={onClose} wide>
-      <ErrorNote message={error} onRetry={reload} />
-      {!user && !error && <p className="hint">Loading…</p>}
+      <LoadError message={error} hasData={!!user} onRetry={reload} />
+      {!user && !error && <PageLoading />}
       {user && (
         <>
           <dl className="kv">
@@ -99,6 +99,16 @@ export default function UserDetail({ id, onClose, onChanged }) {
                 </dd>
                 <dt>Registration no.</dt>
                 <dd>{user.registrationNumber || "-"}</dd>
+                {(user.contactPerson || user.email || user.alternatePhone || user.emergencyPhone) && (
+                  <>
+                    <dt>Contact person</dt>
+                    <dd>{user.contactPerson || "-"}</dd>
+                    <dt>Email</dt>
+                    <dd>{user.email || "-"}</dd>
+                    <dt>Other phones</dt>
+                    <dd>{[user.alternatePhone, user.emergencyPhone].filter(Boolean).join(", ") || "-"}</dd>
+                  </>
+                )}
               </>
             )}
             <dt>Phone</dt>
@@ -127,14 +137,15 @@ export default function UserDetail({ id, onClose, onChanged }) {
             </button>
             {user.status === "suspended" ? (
               <button type="button" className="btn" onClick={reactivate} disabled={reactivating}>
-                {reactivating ? "Reactivating…" : "Reactivate"}
+                {reactivating && <Spinner />}
+                {reactivating ? "Reactivating" : "Reactivate"}
               </button>
             ) : (
               <button type="button" className="btn" onClick={() => setDialog("suspend")}>
                 Suspend
               </button>
             )}
-            <button type="button" className="btn btn-danger" onClick={() => setDialog("delete")}>
+            <button type="button" className="btn btn-danger-quiet" onClick={() => setDialog("delete")}>
               Delete
             </button>
           </div>
@@ -155,10 +166,12 @@ export default function UserDetail({ id, onClose, onChanged }) {
 
           <h3 className="section-title">Latest blood records</h3>
           {data.records.length === 0 ? (
-            <Empty>No blood records for this user.</Empty>
+            <Empty icon="drop" quiet>
+              No blood records for this user.
+            </Empty>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="cards">
                 <thead>
                   <tr>
                     <th>When</th>
@@ -171,11 +184,13 @@ export default function UserDetail({ id, onClose, onChanged }) {
                 <tbody>
                   {data.records.map((record) => (
                     <tr key={record._id}>
-                      <td>{fmtDateTime(record.createdAt)}</td>
-                      <td>{record.inventoryType === "in" ? "Added" : "Issued"}</td>
-                      <td>{record.bloodGroup}</td>
-                      <td className="num">{fmtMl(record.quantity)}</td>
-                      <td>
+                      <td data-label="When">{fmtDateTime(record.createdAt)}</td>
+                      <td data-label="Type">{record.inventoryType === "in" ? "Added" : "Issued"}</td>
+                      <td data-label="Group">{record.bloodGroup}</td>
+                      <td className="num" data-label="Amount">
+                        {fmtMl(record.quantity)}
+                      </td>
+                      <td data-label={isOrganisation ? "Donor / hospital" : "Organisation"}>
                         {nameOf(isOrganisation ? record.donar || record.hospital : record.organisation)}
                       </td>
                     </tr>

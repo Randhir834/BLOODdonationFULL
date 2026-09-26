@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Empty, ErrorNote, TruncatedNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead, TruncatedNote } from "../../components/Feedback";
 import Pagination from "../../components/Pagination";
 import { TableSkeleton } from "../../components/Skeleton";
 import { AccountStatus, ApprovalStatus, RoleBadge } from "../../components/Status";
@@ -7,10 +7,27 @@ import { useApi } from "../../hooks/useApi";
 import { useQueryParams } from "../../hooks/useQueryParams";
 import { useRealtime } from "../../hooks/useRealtime";
 import { PAGE_SIZE, ROLE_LABEL, VERIFICATION_LABEL } from "../../lib/constants";
-import { fmtDateTime, nameOf } from "../../lib/format";
+import { fmtAgo, fmtDateTime, initialOf, nameOf } from "../../lib/format";
 import UserDetail from "./UserDetail";
 
 const SEARCH_DELAY_MS = 350;
+
+// Quick views over the same filters as the dropdowns below, for the two things an admin looks for most.
+const VIEWS = [
+  { label: "Everyone", status: "", verification: "", active: (f) => !f.status && !f.verification && !f.role },
+  {
+    label: "Awaiting approval",
+    status: "",
+    verification: "pending",
+    active: (f) => f.verification === "pending" && !f.status,
+  },
+  {
+    label: "Suspended",
+    status: "suspended",
+    verification: "",
+    active: (f) => f.status === "suspended" && !f.verification,
+  },
+];
 
 export default function UsersPage() {
   const query = useQueryParams();
@@ -59,21 +76,26 @@ export default function UsersPage() {
 
   return (
     <div className="stack">
-      <div className="page-head">
-        <div>
-          <h1>Users</h1>
-          <p>Everyone who signed up in the mobile app.</p>
-        </div>
-      </div>
+      <PageHead title="Users">Everyone who signed up in the mobile app.</PageHead>
 
       <section className="card">
+        <div className="tabs" role="group" aria-label="Quick views">
+          {VIEWS.map((view) => (
+            <button
+              type="button"
+              key={view.label}
+              className="tab"
+              aria-pressed={view.active({ status, verification, role })}
+              onClick={() => update({ status: view.status, verification: view.verification, role: "" })}
+            >
+              {view.label}
+            </button>
+          ))}
+        </div>
         <div className="filters">
           <label className="field">
             <span>Search</span>
-            <input
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
+            <input value={text} onChange={(event) => setText(event.target.value)} />
           </label>
           <label className="field">
             <span>Role</span>
@@ -107,9 +129,9 @@ export default function UsersPage() {
           </label>
         </div>
 
-        <ErrorNote message={error} onRetry={reload} />
-        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()}>
-          <table>
+        <LoadError message={error} hasData={!!data} onRetry={reload} />
+        <div className={`table-wrap ${loading ? "dim" : ""}`.trim()} hidden={!!error && !data}>
+          <table className="cards">
             <thead>
               <tr>
                 <th>Name</th>
@@ -125,30 +147,40 @@ export default function UsersPage() {
               {(data?.users || []).map((user) => (
                 // The whole row is a pointer shortcut for the link in its first cell, which keyboard users use.
                 <tr key={user._id} className="clickable" onClick={() => openUser(user._id)}>
-                  <td>
-                    <a
-                      href={`?open=${user._id}`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openUser(user._id);
-                      }}
-                    >
-                      {nameOf(user)}
-                    </a>
-                    <div className="sub">{user.address}</div>
+                  <td data-label="Name">
+                    <div className="person">
+                      <span className="avatar avatar-sm" aria-hidden="true">
+                        {initialOf(user)}
+                      </span>
+                      <div>
+                        <a
+                          href={`?open=${user._id}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openUser(user._id);
+                          }}
+                          className="cell-link"
+                        >
+                          {nameOf(user)}
+                        </a>
+                        <div className="sub">{user.address}</div>
+                      </div>
+                    </div>
                   </td>
-                  <td>
+                  <td data-label="Role">
                     <RoleBadge role={user.role} />
                   </td>
-                  <td>{user.phone}</td>
-                  <td>
+                  <td data-label="Phone">{user.phone}</td>
+                  <td data-label="Status">
                     <AccountStatus status={user.status} />
                   </td>
-                  <td>
+                  <td data-label="Approval">
                     <ApprovalStatus role={user.role} verification={user.verification} />
                   </td>
-                  <td>{fmtDateTime(user.createdAt)}</td>
+                  <td data-label="Joined" title={fmtDateTime(user.createdAt)}>
+                    {fmtAgo(user.createdAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>

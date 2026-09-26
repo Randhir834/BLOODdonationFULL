@@ -28,6 +28,9 @@ const schema = z
     // Website origins allowed to call each API from a browser, comma separated.
     CLIENT_ORIGIN: z.string().default("http://localhost:3100"),
     ADMIN_ORIGIN: z.string().default("http://localhost:3101"),
+    // The hospital and blood bank website (hospitalandbloodbanksubadmin/).
+    // Optional in production (nothing may call the hospital / blood bank API until it is set).
+    ORG_ORIGIN: z.string().optional(),
     // Number of reverse proxies in front of the server (needed for rate limiting by IP).
     TRUST_PROXY: z.coerce.number().int().min(0).optional(),
 
@@ -87,6 +90,7 @@ export const parseEnv = (source) => {
     ALLOW_PHONE_LOGIN: config.ALLOW_PHONE_LOGIN === "true",
     CLIENT_ORIGINS: origins(config.CLIENT_ORIGIN),
     ADMIN_ORIGINS: origins(config.ADMIN_ORIGIN),
+    ORG_ORIGINS: origins(config.ORG_ORIGIN ?? (config.NODE_ENV === "production" ? "" : "http://localhost:3102")),
   });
 };
 

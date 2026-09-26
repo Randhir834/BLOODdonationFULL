@@ -100,9 +100,7 @@ describe("CodeStep", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Resend code" }));
     await waitFor(() => expect(sendOtp).toHaveBeenCalledWith("+919876543210"));
-    await waitFor(() =>
-      expect(notify.success).toHaveBeenCalledWith("New code sent", expect.stringContaining("98765 43210"))
-    );
+    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Code sent"));
     expect(screen.getByText("Resend code in 0:30")).toBeInTheDocument();
   });
 });

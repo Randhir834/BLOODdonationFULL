@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { Card, StatCard } from "../../components/Card";
-import { Empty, ErrorNote } from "../../components/Feedback";
+import { Empty, LoadError, PageHead } from "../../components/Feedback";
 import { RoleBadge } from "../../components/Status";
 import { useApi } from "../../hooks/useApi";
 import { useRealtime } from "../../hooks/useRealtime";
-import { fmtDateTime, fmtMl, fmtNum, fmtShort, nameOf } from "../../lib/format";
+import { fmtDateTime, fmtAgo, fmtMl, fmtNum, fmtShort, nameOf } from "../../lib/format";
 import Attention from "./Attention";
 import StockBars from "./StockBars";
 import SystemStatus from "./SystemStatus";
@@ -14,11 +14,11 @@ import TrendChart from "./TrendChart";
 function DashboardSkeleton() {
   return (
     <>
-      <div className="grid-4" aria-hidden="true">
+      <div className="stats" aria-hidden="true">
         {Array.from({ length: 4 }, (_, i) => (
-          <div className="card stat" key={i}>
+          <div className="stat" key={i}>
             <span className="skeleton-bar" style={{ width: "45%" }} />
-            <span className="skeleton-bar lg" style={{ width: "65%" }} />
+            <span className="skeleton-bar lg" style={{ width: "65%", margin: "0.5rem 0" }} />
             <span className="skeleton-bar" style={{ width: "80%" }} />
           </div>
         ))}
@@ -39,8 +39,8 @@ export default function DashboardPage() {
   if (!d) {
     return (
       <div className="stack">
-        <h1>Dashboard</h1>
-        <ErrorNote message={error} onRetry={reload} />
+        <PageHead title="Dashboard" />
+        <LoadError message={error} hasData={false} onRetry={reload} />
         {!error && <DashboardSkeleton />}
       </div>
     );
@@ -50,17 +50,12 @@ export default function DashboardPage() {
 
   return (
     <div className={`stack ${loading ? "dim" : ""}`.trim()}>
-      <div className="page-head">
-        <div>
-          <h1>Dashboard</h1>
-          <p>
-            Updated {fmtDateTime(d.generatedAt)} · days are counted in {d.timezone}
-          </p>
-        </div>
-      </div>
-      <ErrorNote message={error} onRetry={reload} />
+      <PageHead title="Dashboard">
+        Updated {fmtDateTime(d.generatedAt)} · days are counted in {d.timezone}
+      </PageHead>
+      <LoadError message={error} hasData onRetry={reload} />
 
-      <div className="grid-4">
+      <div className="stats">
         <StatCard
           label="Users"
           value={fmtNum(d.users.total)}
@@ -104,10 +99,10 @@ export default function DashboardPage() {
       <div className="grid-2">
         <Card title="Latest blood records" actions={<Link to="/inventory">See all</Link>}>
           {d.recent.records.length === 0 ? (
-            <Empty>No blood records yet.</Empty>
+            <Empty quiet>No blood records yet.</Empty>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="cards">
                 <thead>
                   <tr>
                     <th>When</th>
@@ -120,11 +115,15 @@ export default function DashboardPage() {
                 <tbody>
                   {d.recent.records.map((record) => (
                     <tr key={record._id}>
-                      <td className="nowrap">{fmtShort(record.createdAt)}</td>
-                      <td>{record.inventoryType === "in" ? "Added" : "Issued"}</td>
-                      <td>{record.bloodGroup}</td>
-                      <td className="num">{fmtMl(record.quantity)}</td>
-                      <td>{nameOf(record.organisation)}</td>
+                      <td className="nowrap" data-label="When">
+                        {fmtShort(record.createdAt)}
+                      </td>
+                      <td data-label="Type">{record.inventoryType === "in" ? "Added" : "Issued"}</td>
+                      <td data-label="Group">{record.bloodGroup}</td>
+                      <td className="num" data-label="Amount">
+                        {fmtMl(record.quantity)}
+                      </td>
+                      <td data-label="Organisation">{nameOf(record.organisation)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -134,10 +133,10 @@ export default function DashboardPage() {
         </Card>
         <Card title="Latest sign-ups" actions={<Link to="/users">See all</Link>}>
           {d.recent.signups.length === 0 ? (
-            <Empty icon="users">No users yet.</Empty>
+            <Empty quiet>No users yet.</Empty>
           ) : (
             <div className="table-wrap">
-              <table>
+              <table className="cards">
                 <thead>
                   <tr>
                     <th>Name</th>
@@ -148,14 +147,18 @@ export default function DashboardPage() {
                 <tbody>
                   {d.recent.signups.map((user) => (
                     <tr key={user._id}>
-                      <td>
-                        <Link to={`/users?open=${user._id}`}>{nameOf(user)}</Link>
+                      <td data-label="Name">
+                        <Link className="cell-link" to={`/users?open=${user._id}`}>
+                          {nameOf(user)}
+                        </Link>
                         <div className="sub">{user.phone}</div>
                       </td>
-                      <td>
+                      <td data-label="Role">
                         <RoleBadge role={user.role} />
                       </td>
-                      <td className="nowrap">{fmtShort(user.createdAt)}</td>
+                      <td className="nowrap" data-label="Joined">
+                        {fmtAgo(user.createdAt)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

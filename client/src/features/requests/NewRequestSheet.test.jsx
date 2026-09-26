@@ -64,9 +64,7 @@ describe("NewRequestSheet: creating", () => {
         note: "",
       })
     );
-    await waitFor(() =>
-      expect(notify.success).toHaveBeenCalledWith("Request sent", expect.stringContaining("450 ML of A+"))
-    );
+    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Request sent"));
     expect(onDone).toHaveBeenCalled();
   });
 
@@ -133,7 +131,7 @@ describe("NewRequestSheet: editing", () => {
         patientName: "John Smith",
       })
     );
-    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Request updated", expect.any(String)));
+    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Request updated"));
     expect(onDone).toHaveBeenCalled();
   });
 

@@ -20,11 +20,11 @@ export default function MyCampsPage() {
     setBusyId(deleting._id);
     try {
       await removeCamp(deleting._id);
-      notify.success("Camp deleted", `${deleting.name} is no longer on the map.`);
+      notify.success("Camp deleted");
       setDeleting(null);
       reload();
     } catch (err) {
-      notify.error("Could not delete this camp", errorMessage(err, "Please try again."));
+      notify.error(errorMessage(err, "Could not delete this camp"));
       setDeleting(null);
     } finally {
       setBusyId(null);

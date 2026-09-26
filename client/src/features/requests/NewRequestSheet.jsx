@@ -11,7 +11,6 @@ import {
   REQUEST_PRIORITIES,
   REQUEST_PRIORITY_LABEL,
 } from "../../lib/constants";
-import { fmtNum } from "../../lib/format";
 import { notify } from "../../lib/notify";
 import { createRequest, updateRequest } from "./requestsApi";
 
@@ -85,12 +84,7 @@ export default function NewRequestSheet({ request, onClose, onDone }) {
     try {
       if (editing) await updateRequest(request._id, body);
       else await createRequest(body);
-      if (editing) notify.success("Request updated", "Your changes were saved.");
-      else
-        notify.success(
-          "Request sent",
-          `${fmtNum(quantity)} ML of ${group} is now visible to people nearby, who can offer to help.`
-        );
+      notify.success(editing ? "Request updated" : "Request sent");
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not send the request. Please try again."));

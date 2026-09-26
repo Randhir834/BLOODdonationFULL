@@ -27,10 +27,7 @@ export default function DiscardUnitSheet({ record, onClose, onDone }) {
     setBusy(true);
     try {
       await discardUnit(record._id, { reason, note });
-      notify.success(
-        "Unit discarded",
-        `${record.bloodGroup}, ${record.quantity} ML was removed from your stock.`
-      );
+      notify.success("Unit discarded");
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not discard this unit. Please try again."));

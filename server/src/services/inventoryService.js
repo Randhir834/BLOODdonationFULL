@@ -10,9 +10,19 @@ import {
 } from "../constants/index.js";
 import { HttpError } from "../utils/HttpError.js";
 import { DAY_MS } from "../utils/time.js";
-import { inventoryCollection } from "./collections.js";
+import { hospitalStockCollection, inventoryCollection } from "./collections.js";
 import { bumpDiscarded, bumpStock } from "./stockService.js";
-import { findUserByPhone, findUsersByIds, isApproved } from "./userService.js";
+import { displayName, findUserByPhone, findUsersByIds, isApproved } from "./userService.js";
+
+/**
+ * Where a hospital or blood bank keeps its stock. A blood bank's is `inventory` (also read by the mobile app
+ * and the admin website, and the only one that feeds the platform-wide running totals). A hospital's is
+ * `hospitalStock`: same document shape, but kept apart so a hospital's own blood never inflates the blood
+ * bank figures the admin dashboard reports. In both, `organisation` is the account that owns the stock.
+ */
+export const bankLedger = Object.freeze({ collection: inventoryCollection, trackTotals: true });
+export const hospitalLedger = Object.freeze({ collection: hospitalStockCollection, trackTotals: false });
+export const ledgerFor = (user) => (user.role === ROLES.HOSPITAL ? hospitalLedger : bankLedger);
 
 // Fields a caller may filter on (equality only).
 const FILTERABLE = ["organisation", "inventoryType", "bloodGroup", "donar", "hospital"];
@@ -34,7 +44,7 @@ const unitLabel = (now, ref) =>
   `U-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${ref.id.slice(-6).toUpperCase()}`;
 
 /** True while a unit can still be drawn from: not expired, not discarded, not a pre-unit legacy record. */
-const isDrawable = (unit, now) =>
+export const isDrawable = (unit, now) =>
   unit.status === UNIT_STATUS.AVAILABLE &&
   unit.expiresAt > now &&
   unit.quantity - (unit.consumedQuantity || 0) > 0;
@@ -59,14 +69,27 @@ const isDrawable = (unit, now) =>
  * issue against a donor's or blood bank's own request never pollutes their donation/received-blood history.
  */
 export const recordBlood = async (
-  { organisation, phone, inventoryType, bloodGroup, quantity, counterpart: given, requestId },
+  {
+    organisation,
+    phone,
+    inventoryType,
+    bloodGroup,
+    quantity,
+    counterpart: given,
+    requestId,
+    // The hospital / blood bank website: which stock it is, and the details a walk-in donor or a patient
+    // (someone with no account in the app) can have instead of a phone number that is looked up.
+    ledger = bankLedger,
+    walkIn,
+    details = {},
+  },
   existingTx
 ) => {
   const adding = inventoryType === INVENTORY_TYPES.IN;
-  const counterpart = given || (await findUserByPhone(phone));
-  if (!counterpart) throw new HttpError(404, "User not found");
+  const counterpart = given || (walkIn ? null : await findUserByPhone(phone));
+  if (!counterpart && !walkIn) throw new HttpError(404, "User not found");
 
-  if (!given) {
+  if (!given && counterpart) {
     const expectedRole = adding ? ROLES.DONOR : ROLES.HOSPITAL;
     if (counterpart.role !== expectedRole) {
       throw new HttpError(400, adding ? "Not a donor account" : "Not a hospital account");
@@ -80,32 +103,44 @@ export const recordBlood = async (
     inventoryType,
     bloodGroup,
     quantity,
-    phone,
+    phone: phone ?? counterpart?.phone ?? walkIn?.phone ?? "",
     organisation,
+    // Who the blood came from / went to, as it was named at the time (an account can be renamed or removed).
+    counterpartName: counterpart ? displayName(counterpart) : walkIn.name,
+    ...(counterpart && { counterpartId: counterpart._id, counterpartRole: counterpart.role }),
+    ...(details.reference && { reference: details.reference }),
+    ...(details.note && { note: details.note }),
+    ...(details.recordedBy && { recordedBy: details.recordedBy }),
     // Only tag the field a donation ("in") or an issue ("out") naturally means: an "out" record fulfilling
     // a donor's or blood bank's own request must not be tagged `donar`, or it would show up as a donation
     // in that donor's history even though no blood was ever given by them.
-    ...((adding && counterpart.role === ROLES.DONOR) || (!adding && counterpart.role === ROLES.HOSPITAL)
+    ...(counterpart &&
+    ((adding && counterpart.role === ROLES.DONOR) || (!adding && counterpart.role === ROLES.HOSPITAL))
       ? { [RECORD_FIELD[counterpart.role]]: counterpart._id }
       : {}),
     ...(requestId ? { requestId } : {}),
     createdAt: now,
     updatedAt: now,
   };
-  const ref = inventoryCollection().doc();
+  const ref = ledger.collection().doc();
+  const track = (tx, sign = 1) => ledger.trackTotals && bumpStock(tx, record, sign);
 
   if (adding) {
-    const expiresAt = new Date(Date.parse(now) + env.SHELF_LIFE_DAYS * DAY_MS).toISOString();
+    const collectedAt = details.collectedAt || now;
+    const expiresAt =
+      details.expiresAt || new Date(Date.parse(collectedAt) + env.SHELF_LIFE_DAYS * DAY_MS).toISOString();
     Object.assign(record, {
       unitId: unitLabel(new Date(now), ref),
       status: UNIT_STATUS.AVAILABLE,
-      collectedAt: now,
+      collectedAt,
       expiresAt,
       consumedQuantity: 0,
+      ...(details.bagNumber && { bagNumber: details.bagNumber }),
+      ...(details.storageLocation && { storageLocation: details.storageLocation }),
     });
     const run = async (tx) => {
       tx.set(ref, record);
-      bumpStock(tx, record, 1);
+      track(tx);
       return { _id: ref.id, ...record };
     };
     return existingTx ? run(existingTx) : getDb().runTransaction(run);
@@ -113,7 +148,8 @@ export const recordBlood = async (
 
   const run = async (tx) => {
     const snap = await tx.get(
-      inventoryCollection()
+      ledger
+        .collection()
         .where("organisation", "==", organisation)
         .where("bloodGroup", "==", bloodGroup)
         .where("status", "==", UNIT_STATUS.AVAILABLE)
@@ -156,7 +192,7 @@ export const recordBlood = async (
       quantity: take,
     }));
     tx.set(ref, record);
-    bumpStock(tx, record, 1);
+    track(tx);
     return { _id: ref.id, ...record };
   };
   return existingTx ? run(existingTx) : getDb().runTransaction(run);
@@ -171,9 +207,9 @@ export const recordBlood = async (
  * not exist (checked inside the transaction, so nothing is changed before that is known). It is left
  * out only by the trusted, admin-only expiry sweep, which discards across every blood bank.
  */
-export const discardUnit = async (id, { reason, note, organisation }, actor) =>
+export const discardUnit = async (id, { reason, note, organisation, ledger = bankLedger }, actor) =>
   getDb().runTransaction(async (tx) => {
-    const ref = inventoryCollection().doc(id);
+    const ref = ledger.collection().doc(id);
     const doc = await tx.get(ref);
     if (!doc.exists) throw new HttpError(404, "Unit not found");
     const unit = toRecord(doc);
@@ -198,7 +234,7 @@ export const discardUnit = async (id, { reason, note, organisation }, actor) =>
       discardedBy: actor?.label || "",
       updatedAt: now,
     });
-    bumpDiscarded(tx, unit.bloodGroup, unit.quantity, 1);
+    if (ledger.trackTotals) bumpDiscarded(tx, unit.bloodGroup, unit.quantity, 1);
     return { ...unit, status: UNIT_STATUS.DISCARDED, discardReason: reason, discardNote: note || "" };
   });
 
@@ -208,8 +244,8 @@ export const discardUnit = async (id, { reason, note, organisation }, actor) =>
  * an organisation's or role's entire unbounded history in one request. `truncated` says when there were
  * more matches than MAX_SCAN, so the caller knows the list may be incomplete rather than just short.
  */
-export const findRecords = async (filters, limit) => {
-  const snap = await applyFilters(inventoryCollection(), filters).limit(LIMITS.MAX_SCAN).get();
+export const findRecords = async (filters, limit, ledger = bankLedger) => {
+  const snap = await applyFilters(ledger.collection(), filters).limit(LIMITS.MAX_SCAN).get();
   const records = snap.docs.map(toRecord).sort(newestFirst);
   return {
     records: limit ? records.slice(0, limit) : records,
@@ -251,8 +287,9 @@ export const populate = async (records, fields) => {
  * on the returned object says when there were more, so a very long-lived organisation gets an honestly
  * partial (rather than silently wrong) historical total instead of an unbounded read on every request.
  */
-export const organisationTotals = async (organisation) => {
-  const snap = await inventoryCollection()
+export const organisationTotals = async (organisation, ledger = bankLedger) => {
+  const snap = await ledger
+    .collection()
     .where("organisation", "==", organisation)
     .limit(LIMITS.MAX_SCAN)
     .select(
@@ -284,7 +321,7 @@ export const organisationOverview = async (organisation, recent) => {
 };
 
 /** { [bloodGroup]: totals } from an organisation's raw records, as described on `organisationTotals`. */
-const summariseUnits = (units) => {
+export const summariseUnits = (units) => {
   const now = new Date().toISOString();
   const warnBy = new Date(Date.parse(now) + env.EXPIRY_WARNING_DAYS * DAY_MS).toISOString();
 

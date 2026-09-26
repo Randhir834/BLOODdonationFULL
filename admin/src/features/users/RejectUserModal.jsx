@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "../../components/Feedback";
 import Modal from "../../components/Modal";
 import { useToast } from "../../components/toastContext";
 import api, { errorMessage } from "../../lib/api";
@@ -32,6 +33,7 @@ export default function RejectUserModal({ user, onClose, onDone }) {
             Cancel
           </button>
           <button type="button" className="btn btn-danger" onClick={run} disabled={busy || !reason.trim()}>
+            {busy && <Spinner />}
             Reject
           </button>
         </>

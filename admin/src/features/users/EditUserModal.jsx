@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "../../components/Feedback";
 import Modal from "../../components/Modal";
 import { useToast } from "../../components/toastContext";
 import api, { errorMessage } from "../../lib/api";
@@ -48,7 +49,8 @@ export default function EditUserModal({ user, onClose, onSaved }) {
             Cancel
           </button>
           <button type="button" className="btn btn-primary" onClick={save} disabled={busy}>
-            Save changes
+            {busy && <Spinner />}
+            {busy ? "Saving" : "Save changes"}
           </button>
         </>
       }
@@ -88,7 +90,10 @@ export default function EditUserModal({ user, onClose, onSaved }) {
           </select>
         </label>
       )}
-      <p className="hint">Leave a field blank to keep its current value. The phone number can not be changed here: it is the user&apos;s sign-in.</p>
+      <p className="hint">
+        Leave a field blank to keep its current value. The phone number can not be changed here: it is the
+        user&apos;s sign-in.
+      </p>
     </Modal>
   );
 }

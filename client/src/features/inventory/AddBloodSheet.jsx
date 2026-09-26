@@ -49,10 +49,7 @@ export default function AddBloodSheet({ initialType = RECORD_TYPES.IN, onClose, 
     setBusy(true);
     try {
       await createRecord({ phone: e164, inventoryType: type, bloodGroup: group, quantity });
-      notify.success(
-        adding ? "Blood added to stock" : "Blood issued",
-        `${fmtNum(quantity)} ML of ${group} ${adding ? "was added to your stock." : "was issued and taken off your stock."}`
-      );
+      notify.success(`${fmtNum(quantity)} ML of ${group} ${adding ? "added" : "issued"}`);
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not save the record. Please try again."));

@@ -18,7 +18,14 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && auth.currentUser) signOut(auth);
+    if (error.response?.status === 401 && auth.currentUser) {
+      try {
+        sessionStorage.setItem("bb.admin.signedOut", "Your session ended. Please sign in again.");
+      } catch {
+        // storage unavailable: the reason is simply not shown
+      }
+      signOut(auth);
+    }
     return Promise.reject(error);
   }
 );

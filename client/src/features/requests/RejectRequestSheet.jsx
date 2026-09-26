@@ -25,7 +25,7 @@ export default function RejectRequestSheet({ request, onClose, onDone }) {
     setBusy(true);
     try {
       await rejectRequest(request._id, reason.trim());
-      notify.success("Request rejected", "The requester can see your reason.");
+      notify.success("Request rejected");
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not reject this request. Please try again."));

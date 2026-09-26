@@ -35,7 +35,7 @@ export default function NearbyMapPage() {
       setMyPosition({ lat: position.coords.latitude, lng: position.coords.longitude });
     } catch {
       // The map still works centred on the default view, so this is a heads-up rather than an error.
-      notify.warning("Could not get your location", "Allow location access for this app to see distances.");
+      notify.warning("Could not get your location");
     } finally {
       setLocating(false);
     }

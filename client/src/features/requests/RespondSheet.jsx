@@ -42,10 +42,7 @@ export default function RespondSheet({ request, onClose, onDone }) {
     setBusy(true);
     try {
       await respondToRequest(request._id, units);
-      notify.success(
-        "Offer sent",
-        "The person who asked for blood has been told, and will confirm with you."
-      );
+      notify.success("Offer sent");
       onDone();
     } catch (err) {
       setServerError(errorMessage(err, "Could not send your offer. Please try again."));
@@ -58,7 +55,7 @@ export default function RespondSheet({ request, onClose, onDone }) {
     setBusy(true);
     try {
       await withdrawResponse(request._id, myResponse._id);
-      notify.success("Offer withdrawn", "You are no longer offering units for this request.");
+      notify.success("Offer withdrawn");
       onDone();
     } catch (err) {
       setServerError(errorMessage(err, "Could not withdraw your offer. Please try again."));

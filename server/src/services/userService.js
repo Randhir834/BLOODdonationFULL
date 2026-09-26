@@ -27,6 +27,24 @@ const isDocId = (id) => typeof id === "string" && id.length > 0 && !id.includes(
 // `cityKey` is copied from the requester's at creation.
 const cityKeyOf = (city) => city.trim().toLowerCase();
 
+// Extra details a hospital or blood bank gives about itself on its own website. All optional text.
+export const ORG_PROFILE_FIELDS = [
+  "email",
+  "contactPerson",
+  "alternatePhone",
+  "emergencyPhone",
+  "state",
+  "pincode",
+  "about",
+  "hours",
+];
+
+const pickProfile = (source = {}) =>
+  Object.fromEntries(ORG_PROFILE_FIELDS.filter((field) => source[field] !== undefined).map((field) => [field, source[field]]));
+
+/** A registration or licence number reduced to what identifies it ("KA/BB 001" and "kabb001" are one). */
+export const registrationKeyOf = (number) => String(number || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
 /** The name a user goes by, whichever role they have. */
 export const displayName = (user) => user[NAME_FIELD[user.role]] || user.phone;
 
@@ -56,6 +74,8 @@ const ADMIN_ONLY_FIELDS = [
   "verifiedBy",
   "statusReason",
   "statusUpdatedAt",
+  "registrationKey",
+  "resubmittedAt",
 ];
 
 // Live location only ever leaves the server through locationService's own, purpose-built endpoints
@@ -111,7 +131,7 @@ export const listUsers = async (role) => {
 export const createUser = async (
   uid,
   phone,
-  { role, name, address, city, website, registrationNumber, bloodGroup }
+  { role, name, address, city, website, registrationNumber, bloodGroup, profile }
 ) => {
   const now = new Date().toISOString();
   const needsApproval = APPROVAL_ROLES.includes(role);
@@ -126,7 +146,9 @@ export const createUser = async (
     status: USER_STATUS.ACTIVE,
     // A hospital or blood bank waits for an admin, a donor can start right away.
     verification: needsApproval ? VERIFICATION.PENDING : VERIFICATION.APPROVED,
-    ...(needsApproval && { registrationNumber }),
+    ...(needsApproval && { registrationNumber, registrationKey: registrationKeyOf(registrationNumber) }),
+    ...(needsApproval && pickProfile(profile)),
+    ...(needsApproval && profile?.open24x7 !== undefined && { open24x7: profile.open24x7 }),
     // Only a donor's own blood type is ever meaningful; it drives blood-request notification matching.
     ...(role === ROLES.DONOR && bloodGroup && { bloodGroup }),
     createdAt: now,
@@ -177,6 +199,57 @@ export const updateUser = async (id, patch) => {
 export const updateOwnProfile = async (user, { address, city }) => {
   const update = { address, city, cityKey: cityKeyOf(city), updatedAt: new Date().toISOString() };
   await usersCollection().doc(user._id).update(update);
+  forgetSessionUser(user._id);
+  return findUserById(user._id);
+};
+
+/** The hospital or blood bank already using this registration number, or null. */
+export const findOrganisationByRegistration = async (number) => {
+  const key = registrationKeyOf(number);
+  if (!key) return null;
+  const snap = await usersCollection().where("registrationKey", "==", key).limit(1).get();
+  return snap.empty ? null : toUser(snap.docs[0]);
+};
+
+/**
+ * A hospital or blood bank edits its own profile from its website. The registration number can only change
+ * while the account is not approved (afterwards it is what the approval was based on, so an admin changes it).
+ * Deliberately not gated on approval: an organisation waiting for, or refused, approval must be able to correct
+ * its details.
+ */
+export const updateOrgProfile = async (user, patch) => {
+  if (!APPROVAL_ROLES.includes(user.role)) throw new HttpError(403, "Only a hospital or blood bank has an organisation profile");
+  if (patch.registrationNumber !== undefined && patch.registrationNumber !== user.registrationNumber) {
+    if (verificationOf(user) === VERIFICATION.APPROVED) {
+      throw new HttpError(400, "The registration number can not be changed after approval, contact an admin");
+    }
+    const other = await findOrganisationByRegistration(patch.registrationNumber);
+    if (other && other._id !== user._id) throw new HttpError(409, "This registration number is already registered");
+  }
+
+  const update = { updatedAt: new Date().toISOString(), ...pickProfile(patch) };
+  if (patch.name !== undefined) update[NAME_FIELD[user.role]] = patch.name;
+  if (patch.address !== undefined) update.address = patch.address;
+  if (patch.website !== undefined) update.website = patch.website;
+  if (patch.open24x7 !== undefined) update.open24x7 = patch.open24x7;
+  if (patch.city !== undefined) Object.assign(update, { city: patch.city, cityKey: cityKeyOf(patch.city) });
+  if (patch.registrationNumber !== undefined) {
+    Object.assign(update, {
+      registrationNumber: patch.registrationNumber,
+      registrationKey: registrationKeyOf(patch.registrationNumber),
+    });
+  }
+  await usersCollection().doc(user._id).update(update);
+  forgetSessionUser(user._id);
+  return findUserById(user._id);
+};
+
+/** A refused organisation, having corrected its details, asks for another review. */
+export const resubmitForReview = async (user) => {
+  if (verificationOf(user) !== VERIFICATION.REJECTED) throw new HttpError(400, "Only a refused registration can be sent for review again");
+  await usersCollection()
+    .doc(user._id)
+    .update({ verification: VERIFICATION.PENDING, verificationReason: "", resubmittedAt: new Date().toISOString() });
   forgetSessionUser(user._id);
   return findUserById(user._id);
 };

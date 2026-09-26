@@ -38,7 +38,7 @@ export default function CampFormSheet({ camp, onClose, onDone }) {
       clear("location");
     } catch {
       // The person can still tap the map to place the pin by hand, so say that rather than fail silently.
-      notify.warning("Could not get your location", "Tap the map to place the camp's pin by hand.");
+      notify.warning("Could not get your location");
     } finally {
       setLocating(false);
     }
@@ -67,8 +67,8 @@ export default function CampFormSheet({ camp, onClose, onDone }) {
     try {
       if (editing) await updateCamp(camp._id, body);
       else await createCamp(body);
-      if (editing) notify.success("Camp updated", "Your changes were saved.");
-      else notify.success("Camp added", "Donors and hospitals can now find it on the map.");
+      if (editing) notify.success("Camp updated");
+      else notify.success("Camp added");
       onDone();
     } catch (error) {
       setServerError(errorMessage(error, "Could not save the camp. Please try again."));

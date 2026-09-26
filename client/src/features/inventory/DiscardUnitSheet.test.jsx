@@ -37,9 +37,7 @@ describe("DiscardUnitSheet", () => {
     await waitFor(() =>
       expect(discardUnit).toHaveBeenCalledWith("r1", { reason: "damaged", note: "Bag was leaking" })
     );
-    await waitFor(() =>
-      expect(notify.success).toHaveBeenCalledWith("Unit discarded", expect.stringContaining("A+, 450 ML"))
-    );
+    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Unit discarded"));
     expect(onDone).toHaveBeenCalled();
   });
 

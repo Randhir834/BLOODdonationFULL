@@ -148,3 +148,31 @@ export const RESPONSE_STATUS = Object.freeze({
   WITHDRAWN: "withdrawn",
 });
 export const RESPONSE_STATUS_LIST = Object.values(RESPONSE_STATUS);
+
+// What a notification is about. Notifications are addressed to one hospital or blood bank account and
+// shown on its website (never something a person has to open just to find a request: every request is
+// also listed on the Requests page itself).
+export const NOTIFICATION_TYPE = Object.freeze({
+  REQUEST_NEW: "request.new", // a request was raised in the organisation's city, or sent straight to it
+  REQUEST_RESPONSE: "request.response", // someone offered to help with the organisation's request
+  REQUEST_UPDATE: "request.update", // a request the organisation answered was fulfilled / cancelled / rejected
+  RESPONSE_DECISION: "response.decision", // the requester confirmed or declined the organisation's offer
+  RESPONSE_DISPATCHED: "response.dispatched", // blood was sent against an offer the organisation's request accepted
+  STOCK_LOW: "stock.low",
+  ACCOUNT_DECISION: "account.decision", // an admin approved or rejected the registration
+});
+export const NOTIFICATION_TYPE_LIST = Object.values(NOTIFICATION_TYPE);
+
+// Longer, free-form text limits used by the hospital / blood bank website.
+export const ORG_LIMITS = Object.freeze({
+  EMAIL: 120,
+  ABOUT: 500,
+  HOURS: 100,
+  STATE: 80,
+  PINCODE: 12,
+  BAG_NUMBER: 40,
+  STORAGE: 60,
+  UNIT_NOTE: 200,
+  REFERENCE: 60,
+  MAX_SHELF_DAYS: 400,
+});

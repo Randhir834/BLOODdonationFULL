@@ -69,7 +69,7 @@ export default function RequestsPage() {
       onSuccess();
       reload();
     } catch (err) {
-      notify.error(failure, errorMessage(err, "Please try again."));
+      notify.error(errorMessage(err, failure));
     } finally {
       acting.current = false;
       setBusyId(null);
@@ -78,21 +78,10 @@ export default function RequestsPage() {
   };
 
   const fulfil = (item) =>
-    run(
-      item,
-      fulfilRequest,
-      () =>
-        notify.success("Request fulfilled", `${fmtNum(item.quantity)} ML of ${item.bloodGroup} was issued.`),
-      "Could not fulfil this request"
-    );
+    run(item, fulfilRequest, () => notify.success("Request fulfilled"), "Could not fulfil this request");
 
   const cancel = (item) =>
-    run(
-      item,
-      cancelRequest,
-      () => notify.success("Request cancelled", "People nearby will no longer see it."),
-      "Could not cancel this request"
-    );
+    run(item, cancelRequest, () => notify.success("Request cancelled"), "Could not cancel this request");
 
   // Own request, or one naming this blood bank, or a nearby one from someone else's city feed: which of
   // the three decides both the row's "party" and which actions it offers.

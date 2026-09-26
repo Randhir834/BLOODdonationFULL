@@ -1,0 +1,414 @@
+/* =====================================================================
+   Surfaces: tables, dialogs, toasts, detail views
+   ===================================================================== */
+
+/* ---------- tables ---------- */
+.table-wrap {
+  overflow-x: auto;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  padding: 0.875rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+th {
+  border-bottom: 1.5px solid var(--line-strong);
+  padding-top: 0.5rem;
+  padding-bottom: 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+th.num {
+  text-align: right;
+}
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+tbody tr:hover {
+  background: var(--bg);
+}
+tr.clickable {
+  cursor: pointer;
+}
+td:first-child,
+th:first-child {
+  padding-left: 0.25rem;
+}
+.cell-link {
+  color: var(--text);
+  font-weight: 600;
+}
+.cell-link:hover {
+  color: var(--accent);
+}
+.person {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+.avatar-sm {
+  width: 2rem;
+  height: 2rem;
+  font-size: 0.8125rem;
+}
+td .sub {
+  margin-top: 0.125rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--text-3);
+}
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.375rem;
+}
+tr.skeleton-row:hover {
+  background: none;
+}
+
+/* Phones: a row becomes a small card, and each cell says what it is (data-label). */
+@media (max-width: 760px) {
+  table.cards thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  table.cards,
+  table.cards tbody,
+  table.cards tr,
+  table.cards td {
+    display: block;
+  }
+  table.cards tr {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.875rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+  table.cards tbody tr:last-child {
+    margin-bottom: 0;
+  }
+  table.cards td {
+    position: relative;
+    min-height: 1.75rem;
+    padding: 0.3125rem 0 0.3125rem 7.25rem;
+    border: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+  table.cards td::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 0.3125rem;
+    left: 0;
+    width: 6.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.5rem;
+    color: var(--text-3);
+  }
+  table.cards td:not([data-label]) {
+    padding-left: 0;
+  }
+  table.cards td:not([data-label]):empty {
+    display: none;
+  }
+  table.cards td.num {
+    text-align: left;
+  }
+  table.cards .row-actions {
+    justify-content: flex-start;
+    padding-top: 0.25rem;
+  }
+  table.cards tr.skeleton-row td::before {
+    content: none;
+  }
+  table.cards tr.skeleton-row td {
+    padding-left: 0;
+  }
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+.pagination > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ---------- dialogs ---------- */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--overlay);
+  animation: fade 0.15s ease-out;
+}
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, 100%);
+  max-height: 90vh;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-modal);
+  animation: rise 0.2s var(--ease);
+}
+.modal-wide {
+  width: min(52rem, 100%);
+}
+.modal:focus {
+  outline: none;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+.modal-head h2 {
+  min-width: 0;
+  font-size: 1.125rem;
+  overflow-wrap: anywhere;
+}
+.modal-body {
+  min-height: 0;
+  padding: 1.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-body > p:first-child {
+  margin-bottom: 1rem;
+  color: var(--text-2);
+}
+.modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.625rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.modal-foot-inline {
+  padding: 1rem 0 0;
+  border: 0;
+}
+@media (max-width: 600px) {
+  .backdrop {
+    align-items: end;
+    padding: 0;
+  }
+  .modal,
+  .modal-wide {
+    width: 100%;
+    max-height: 94dvh;
+    border-radius: 1.25rem 1.25rem 0 0;
+    animation: slide-up 0.28s var(--ease);
+  }
+  .modal-head {
+    padding-left: 1.25rem;
+  }
+  .modal-body {
+    padding: 1.25rem;
+  }
+  .modal-foot {
+    padding: 0.875rem 1.25rem calc(env(safe-area-inset-bottom) + 0.875rem);
+  }
+  .modal-foot .btn {
+    flex: 1;
+  }
+}
+
+/* ---------- notifications ---------- */
+/* One small message, top centre, on every screen of both products. Only the icon carries the status colour.
+   It never takes a tap: the controls under it stay usable. */
+.toaster {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 0.75rem);
+  right: 0;
+  left: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.75rem;
+  pointer-events: none;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: min(26rem, 100%);
+  padding: 0.625rem 0.875rem;
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  background: var(--surface);
+  box-shadow: 0 0.25rem 1rem rgba(60, 22, 22, 0.12);
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  animation: toast-in 0.16s ease-out;
+}
+.toast.is-leaving {
+  animation: toast-out 0.15s ease-in forwards;
+}
+.toast svg {
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.toast-success svg {
+  color: var(--positive);
+}
+.toast-error svg {
+  color: var(--danger, var(--critical));
+}
+.toast-warning svg {
+  color: var(--warning);
+}
+.toast-info svg {
+  color: var(--text-2);
+}
+.toast span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.25rem);
+  }
+}
+
+/* ---------- detail views ---------- */
+.kv {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 0.625rem 1rem;
+  margin: 0 0 1.5rem;
+  font-size: 0.9375rem;
+}
+.kv dt {
+  color: var(--text-3);
+  font-size: 0.875rem;
+}
+.kv dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.section-title {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.detail-actions .btn-danger {
+  margin-left: auto;
+}
+.mini-stock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.mini-stock > div {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mini-stock b {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--accent);
+}
+.detail-link {
+  margin-top: 0.75rem;
+}
+details summary {
+  margin-top: 0.25rem;
+  color: var(--accent);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+pre {
+  margin: 0.375rem 0 0;
+  padding: 0.625rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 520px) {
+  .kv {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.125rem;
+  }
+  .kv dd {
+    margin-bottom: 0.625rem;
+  }
+  .mini-stock {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .detail-actions .btn {
+    flex: 1 1 calc(50% - 0.5rem);
+  }
+  .detail-actions .btn-danger {
+    margin-left: 0;
+  }
+}
+
+/* Tables with many columns keep each cell on one line and scroll sideways on laptops and tablets,
+   instead of squeezing every cell into a few words per line. */
+@media (min-width: 761px) and (max-width: 1279px) {
+  table.cards-xl td {
+    white-space: nowrap;
+  }
+}

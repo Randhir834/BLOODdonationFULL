@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtDateTime, fmtMl, fmtNum, nameOf } from "./format";
+import { fmtDateTime, fmtMl, fmtNum, nameOf, fmtAgo } from "./format";
 
 describe("format helpers", () => {
   it("formats numbers and millilitres", () => {
@@ -19,5 +19,16 @@ describe("format helpers", () => {
     expect(nameOf({ organisationName: "Red Cross" })).toBe("Red Cross");
     expect(nameOf({ phone: "+919876543210" })).toBe("+919876543210");
     expect(nameOf(null)).toBe("Deleted user");
+  });
+});
+
+describe("fmtAgo", () => {
+  const now = new Date("2026-09-24T12:00:00Z");
+  it("counts minutes, hours and days, then falls back to the date", () => {
+    expect(fmtAgo("2026-09-24T11:59:50Z", now)).toBe("Just now");
+    expect(fmtAgo("2026-09-24T11:20:00Z", now)).toBe("40 min ago");
+    expect(fmtAgo("2026-09-24T09:00:00Z", now)).toBe("3 h ago");
+    expect(fmtAgo("2026-09-19T12:00:00Z", now)).toBe("5 days ago");
+    expect(fmtAgo("", now)).toBe("-");
   });
 });

@@ -1,4 +1,5 @@
 import * as audit from "../services/auditService.js";
+import * as notifications from "../services/notificationService.js";
 import { populate } from "../services/inventoryService.js";
 import {
   cancelRequest,
@@ -33,6 +34,7 @@ export const create = async (req, res) => {
     city: request.city,
     priority: request.priority,
   });
+  await notifications.notifyNewRequest(request);
   res.status(201).json({ success: true, request });
 };
 
@@ -79,6 +81,7 @@ export const fulfil = async (req, res) => {
   await audit.recordActivity(req.user, "request.fulfil", target(request), {
     fulfilledRecordId: request.fulfilledRecordId,
   });
+  await notifications.notifyRequestUpdate(request, [request.requester], "Your blood request was fulfilled");
   res.json({ success: true, request });
 };
 
@@ -88,6 +91,7 @@ export const reject = async (req, res) => {
   const { reason } = req.validated.body;
   const request = await rejectRequest(before, req.user._id, reason);
   await audit.recordActivity(req.user, "request.reject", target(request), { reason });
+  await notifications.notifyRequestUpdate(request, [request.requester], `Your blood request was rejected: ${reason}`);
   res.json({ success: true, request });
 };
 
@@ -95,6 +99,8 @@ export const reject = async (req, res) => {
 export const cancel = async (req, res) => {
   const before = await findOr404(req.validated.params.id);
   const request = await cancelRequest(before, req.user._id);
+  // Before the open offers are declined, so the people who made them can still be found.
+  await notifications.notifyRequestCancelled(request);
   await handleCancelledRequest(request);
   await audit.recordActivity(req.user, "request.cancel", target(request));
   res.json({ success: true, request });

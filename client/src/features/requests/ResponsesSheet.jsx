@@ -7,7 +7,6 @@ import { useLoad } from "../../hooks/useLoad";
 import { errorMessage } from "../../lib/api";
 import { RESPONSE_STATUS_LABEL, ROLE_LABEL } from "../../lib/constants";
 import { fmtAgo, fmtNum, formatPhone, initialOf, nameOf } from "../../lib/format";
-import { notify } from "../../lib/notify";
 import { confirmResponse, declineResponse, listResponses } from "./requestsApi";
 
 const STATUS_CHIP = { confirmed: "chip-success", declined: "chip-danger" };
@@ -18,12 +17,12 @@ export default function ResponsesSheet({ request, onClose, onDone }) {
   const [busyId, setBusyId] = useState(null);
   const [actionError, setActionError] = useState("");
 
-  const decide = async (response, action, success, failure) => {
+  // The row shows the result at once (a Confirmed or Declined label), so there is no message on top of it.
+  const decide = async (response, action, failure) => {
     setBusyId(response._id);
     setActionError("");
     try {
       await action(request._id, response._id);
-      notify.success(success.title, success.description);
       reload();
       onDone();
     } catch (err) {
@@ -33,21 +32,9 @@ export default function ResponsesSheet({ request, onClose, onDone }) {
     }
   };
 
-  const confirm = (response) =>
-    decide(
-      response,
-      confirmResponse,
-      { title: "Offer confirmed", description: `${nameOf(response.responderId)} has been told to go ahead.` },
-      "Could not confirm this response."
-    );
+  const confirm = (response) => decide(response, confirmResponse, "Could not confirm this response.");
 
-  const decline = (response) =>
-    decide(
-      response,
-      declineResponse,
-      { title: "Offer declined", description: "They have been told you will not need it." },
-      "Could not decline this response."
-    );
+  const decline = (response) => decide(response, declineResponse, "Could not decline this response.");
 
   return (
     <Modal labelledBy="responses-title" onClose={onClose}>

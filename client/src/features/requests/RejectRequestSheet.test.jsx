@@ -30,7 +30,7 @@ describe("RejectRequestSheet", () => {
     fireEvent.click(screen.getByRole("button", { name: "Reject request" }));
 
     await waitFor(() => expect(rejectRequest).toHaveBeenCalledWith("r1", "No stock right now"));
-    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Request rejected", expect.any(String)));
+    await waitFor(() => expect(notify.success).toHaveBeenCalledWith("Request rejected"));
     expect(onDone).toHaveBeenCalled();
   });
 
