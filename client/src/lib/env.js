@@ -19,6 +19,9 @@ export const env = {
   authMode: read("VITE_AUTH_MODE") === "direct" && !isProduction ? "direct" : "otp",
   smsCountries: (read("VITE_SMS_COUNTRIES") || "IN").split(",").map((id) => id.trim().toUpperCase()),
   disableAppVerification: read("VITE_DISABLE_APP_VERIFICATION") === "true" && !isProduction,
+  googleMapsApiKey: read("VITE_GOOGLE_MAPS_API_KEY"),
+  // Advanced markers need a map ID; Google's demo ID works until you create your own in the Cloud console.
+  googleMapsMapId: read("VITE_GOOGLE_MAPS_MAP_ID") || "DEMO_MAP_ID",
   firebase: {
     apiKey: read("VITE_FIREBASE_API_KEY"),
     authDomain: read("VITE_FIREBASE_AUTH_DOMAIN"),

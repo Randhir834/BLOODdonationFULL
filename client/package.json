@@ -24,12 +24,11 @@
     "@capacitor/core": "^8.5.2",
     "@capacitor/geolocation": "^8.2.2",
     "@reduxjs/toolkit": "^1.9.5",
+    "@vis.gl/react-google-maps": "^1.10.1",
     "axios": "^1.4.0",
     "firebase": "^12.19.0",
-    "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-leaflet": "^4.2.1",
     "react-redux": "^8.0.5",
     "react-router-dom": "^6.11.1",
     "react-toastify": "^9.1.3"

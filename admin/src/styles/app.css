@@ -1137,20 +1137,28 @@ pre {
 .map-pin-shape.map-pin-muted {
   background: var(--info);
 }
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
-  background: var(--surface);
-  color: var(--text);
+.map-frame-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-2);
+  text-align: center;
 }
-.leaflet-popup-content-wrapper {
-  border-radius: var(--radius-sm);
+/* Tall enough that the pin's rotated tip sits on the box's bottom edge, which Google anchors to the point. */
+.map-pin {
+  display: block;
+  width: 30px;
+  height: 36px;
 }
-.leaflet-popup-content {
+.map-popup {
   font-family: var(--font);
   font-size: 13px;
   line-height: 18px;
+  color: #202124;
 }
-.leaflet-popup-content strong {
+.map-popup strong {
   display: block;
   font-size: 14px;
   margin-bottom: 2px;
